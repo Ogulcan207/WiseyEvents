@@ -1,40 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap - Etkileşimlik</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <title>WiseyEvents - Giriş</title>
+    <link rel="stylesheet" href="static/styles.css"> <!-- Stil dosyanızı buraya bağlayın -->
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row align-items-center justify-content-center min-vh-100">
-            <div class="col-md-6 text-center">
-                <h1 class="brand-title">Etkileşimlik</h1>
-            </div>
-            <div class="col-md-4">
-                <div class="card p-4">
-                    <form method="POST" action="{% url 'login' %}">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label for="username">E-posta veya Telefon Numarası</label>
-                            <input type="text" class="form-control" id="username" name="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Şifre</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
-                        <div class="text-center mt-3">
-                            <a href="{% url 'password_reset' %}">Şifreni mi unuttun?</a>
-                        </div>
-                        <div class="text-center mt-3">
-                            <a href="{% url 'signup' %}" class="btn btn-success btn-block">Yeni hesap oluştur</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <div class="container">
+        <h1>WiseyEvents</h1>
+        <p>Etkinliklerinize kolayca ulaşın ve yönetin!</p>
+        
+        <div class="buttons">
+            <a href="/login/admin" class="btn">Admin Girişi</a>
+            <a href="/login/user" class="btn">Kullanıcı Girişi</a>
         </div>
     </div>
 </body>
