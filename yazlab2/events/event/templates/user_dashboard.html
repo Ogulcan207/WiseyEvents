@@ -4,9 +4,97 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kullanıcı Paneli</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .dashboard-container {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+        }
+        .dashboard-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #343a40;
+        }
+        .profile-info, .update-form {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Kullanıcı Dashboard</h2>
-    <p>Burada kullanıcı paneline ait kontroller ve içerikler yer alacak.</p>
+    <div class="dashboard-container">
+        <h2>Kullanıcı Paneli</h2>
+        
+        <!-- Profil Bilgilerini Gösterme -->
+        <div class="profile-info">
+            <h4>Profil Bilgilerim</h4>
+            <p><strong>Kullanıcı Adı:</strong> {{ user.username }}</p>
+            <p><strong>Ad:</strong> {{ user.first_name }}</p>
+            <p><strong>Soyad:</strong> {{ user.last_name }}</p>
+            <p><strong>E-posta:</strong> {{ user.email }}</p>
+            <p><strong>Telefon Numarası:</strong> {{ user.phone_number }}</p>
+            <p><strong>İlgi Alanları:</strong> {{ user.interests }}</p>
+            <button class="btn btn-secondary" id="editProfileBtn">Bilgilerimi Güncelle</button>
+        </div>
+
+        <!-- Bilgilerimi Güncelle Formu (Gizli Başlangıçta) -->
+        <div class="update-form" style="display: none;">
+            <h4>Profil Bilgilerini Güncelle</h4>
+            <form action="/update_profile" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="first_name">Ad:</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}">
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Soyad:</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}">
+                </div>
+                <div class="form-group">
+                    <label for="email">E-posta:</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}">
+                </div>
+                <div class="form-group">
+                    <label for="phone_number">Telefon Numarası:</label>
+                    <input type="text" class="form-control" id="phone_number" name="phone_number" value="{{ user.phone_number }}">
+                </div>
+                <div class="form-group">
+                    <label for="interests">İlgi Alanları:</label>
+                    <input type="text" class="form-control" id="interests" name="interests" value="{{ user.interests }}">
+                </div>
+                <button type="submit" class="btn btn-primary">Güncelle</button>
+                <button type="button" class="btn btn-secondary" id="cancelEditBtn">İptal</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Güncelle formunu gösterme ve gizleme işlemleri
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        const updateForm = document.querySelector('.update-form');
+        const profileInfo = document.querySelector('.profile-info');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        editProfileBtn.addEventListener('click', () => {
+            profileInfo.style.display = 'none';
+            updateForm.style.display = 'block';
+        });
+
+        cancelEditBtn.addEventListener('click', () => {
+            updateForm.style.display = 'none';
+            profileInfo.style.display = 'block';
+        });
+    </script>
 </body>
 </html>

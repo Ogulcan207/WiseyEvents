@@ -12,6 +12,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            margin: 0;
         }
         .login-container {
             background-color: #fff;
@@ -26,7 +27,17 @@
 <body>
     <div class="login-container">
         <h2 class="text-center">Kullanıcı Girişi</h2>
+
+        {% if messages %}
+            <div class="alert alert-danger">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <form action="/login/user" method="POST">
+            {% csrf_token %}
             <div class="form-group">
                 <label for="username">Kullanıcı Adı:</label>
                 <input type="text" class="form-control" id="username" name="username" required>
@@ -38,7 +49,7 @@
             <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
             <div class="text-center mt-3">
                 <a href="/signup">Yeni Hesap Oluştur</a> | 
-                <a href="/password-reset">Şifremi Unuttum</a>
+                <a href="/password/reset">Şifremi Unuttum</a>
             </div>
         </form>
     </div>

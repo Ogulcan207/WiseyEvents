@@ -12,6 +12,7 @@
             align-items: center;
             height: 100vh;
             background-color: #f8f9fa;
+            margin: 0;
         }
         .login-container {
             width: 100%;
@@ -37,7 +38,17 @@
 <body>
     <div class="login-container">
         <h2>Admin Girişi</h2>
+
+        {% if messages %}
+            <div class="alert alert-danger">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <form action="/login/admin" method="POST">
+            {% csrf_token %}
             <div class="form-group">
                 <label for="username">Kullanıcı Adı:</label>
                 <input type="text" id="username" name="username" class="form-control" required>

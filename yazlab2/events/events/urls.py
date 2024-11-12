@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.urls import path, include
-from . import views  
+from event import views  # index view'ini almak için event uygulamasından views'leri import edin
 
 urlpatterns = [
     path('admin/', admin.site.urls),  # Admin paneli
-    path('event/', include('event.urls')),  # event uygulaması URL'lerini dahil et
+    path('', views.index, name='index'),  # Ana sayfa view'i
+    path('', include('event.urls')),  # event uygulaması URL'lerini dahil et
 ]
