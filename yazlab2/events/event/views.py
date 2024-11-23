@@ -8,7 +8,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="200!Voxor",
+        passwd="159753Ubeyd",
         database="akillietkinlik"
     )
 
@@ -109,7 +109,7 @@ def admin_dashboard(request):
     admin_id = request.session['admin_id']
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Admins WHERE id = %s", (admin_id,))
+    cursor.execute("SELECT * FROM admin WHERE id = %s", (admin_id,))
     admin = cursor.fetchone()
     cursor.close()
 
@@ -125,9 +125,24 @@ def user_dashboard(request):
     user_id = request.session['user_id']
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Users WHERE id = %s", (user_id,))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
     cursor.close()
+
+    user = {
+        'id': user[0],
+        'username': user[1],
+        'password': user[2],
+        'plain_password': user[3],
+        'email': user[4],
+        'first_name': user[5],
+        'last_name': user[6],
+        'birth_date': user[7],
+        'gender': user[8],
+        'phone_number': user[9],
+        'interests': user[10],
+        'total_points': user[11],
+    }
 
     return render(request, 'user_dashboard.html', {'user': user})
 
