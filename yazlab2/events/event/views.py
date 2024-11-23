@@ -12,71 +12,61 @@ def get_db_connection():
         database="akillietkinlik"
     )
 
-# Kullanıcı doğrulama fonksiyonu
-def verify_user(username, password):
+# Kullanıcı giriş doğrulama fonksiyonu (dinamik tablo için)
+def verify_user(user_table, username, password):
+    """Belirtilen tabloya göre kullanıcı doğrulama"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT password FROM users WHERE username = %s", (username,))
-    result = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    
-    if result:
-        hashed_password = result[0]
-        if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
-            return True
-    return False
+    try:
+        cursor.execute(f"SELECT * FROM {user_table} WHERE username = %s AND plain_password = %s", (username, password))
+        user = cursor.fetchone()
+        return user  # Eğer kullanıcı varsa, bilgilerini döndür
+    except Exception as e:
+        print(f"Veritabanı hatası: {e}")
+        return None
+    finally:
+        cursor.close()
 
-# Admin doğrulama fonksiyonu
-def verify_admin(username, password):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT password FROM admin WHERE username = %s", (username,))
-    result = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    
-    if result:
-        hashed_password = result[0]
-        if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
-            return True
-    return False
 
-# Ana sayfa view
-def index(request):
-    return render(request, 'index.html')
-
-# Admin giriş view
 def admin_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         
-        if verify_admin(username, password):
-            # Başarılı giriş
-            return redirect('admin_dashboard')
+        # Admini doğrula
+        admin = verify_user("admin", username, password)  # Admins tablosunda kontrol
+        if admin:
+            # Admin bilgilerini session'a ekle
+            request.session['admin_id'] = admin[0]  # Örnek: admin[0] = AdminID
+            request.session['admin_username'] = admin[1]  # Admin kullanıcı adı
+            return redirect('admin_dashboard')  # Admin paneline yönlendirme
         else:
-            # Başarısız giriş durumunda uyarı mesajı
-            messages.error(request, 'Kullanıcı adı veya şifre yanlış.')
-            return render(request, 'login_admin.html')
-        
+            messages.error(request, "Kullanıcı adı veya şifre hatalı!")
+            return redirect('login_admin')  # Tekrar giriş ekranına yönlendirme
     return render(request, 'login_admin.html')
+
 
 def user_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         
-        if verify_user(username, password):
-            # Başarılı giriş
-            return redirect('user_dashboard')
+        # Kullanıcıyı doğrula
+        user = verify_user("users", username, password)  # Users tablosunda kontrol
+        if user:
+            # Kullanıcı bilgilerini session'a ekle
+            request.session['user_id'] = user[0]  # Örnek: user[0] = UserID
+            request.session['username'] = user[1]  # Kullanıcı adı
+            return redirect('user_dashboard')  # Kullanıcı paneline yönlendirme
         else:
-            # Hatalı girişte hata mesajı ekle
-            messages.error(request, 'Geçersiz kullanıcı adı veya şifre.')
-            return render(request, 'login_user.html')
-    
-    # GET isteğinde yalnızca formu göster, hata mesajı ekleme
+            messages.error(request, "Kullanıcı adı veya şifre hatalı!")
+            return redirect('login_user')  # Tekrar giriş ekranına yönlendirme
     return render(request, 'login_user.html')
+
+
+# Ana sayfa view
+def index(request):
+    return render(request, 'index.html')
 
 # Profil güncelleme view fonksiyonu
 def update_profile(request):
@@ -111,13 +101,54 @@ def update_profile(request):
         return redirect('user_dashboard')
     return redirect('user_dashboard')
 
-# Admin kontrol paneli view
 def admin_dashboard(request):
-    return render(request, 'admin_dashboard.html')
+    if 'admin_id' not in request.session:  # Admin oturum açmamışsa
+        return redirect('login_admin')
+    
+    # Admin bilgilerini çek
+    admin_id = request.session['admin_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Admins WHERE id = %s", (admin_id,))
+    admin = cursor.fetchone()
+    cursor.close()
+
+    return render(request, 'admin_dashboard.html', {'admin': admin})
+
 
 # Kullanıcı kontrol paneli view
 def user_dashboard(request):
-    return render(request, 'user_dashboard.html')
+    if 'user_id' not in request.session:  # Kullanıcı oturum açmamışsa
+        return redirect('login_user')
+    
+    # Kullanıcı bilgilerini çek
+    user_id = request.session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    cursor.close()
+
+    return render(request, 'user_dashboard.html', {'user': user})
+
+
+
+def get_user_info(username):
+    # Kullanıcı bilgilerini veritabanından al
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT first_name, last_name, email FROM users WHERE username = %s", (username,))
+    user_info = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if user_info:
+        return {
+            'first_name': user_info[0],
+            'last_name': user_info[1],
+            'email': user_info[2],
+        }
+    return None
 
 # Şifre sıfırlama view
 def password_reset(request):
