@@ -79,7 +79,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'akillietkinlik',
         'USER': 'root',
-        'PASSWORD': '159753Ubeyd',
+        'PASSWORD': '200!Voxor',
         'HOST': 'localhost',
         'PORT': '',
     }
@@ -116,6 +116,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 3600  # Oturum süresi (ör. 1 saat)
+SESSION_SAVE_EVERY_REQUEST = True  # Her istek için oturumu kaydet
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/

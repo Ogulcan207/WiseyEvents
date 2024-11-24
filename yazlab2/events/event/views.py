@@ -8,7 +8,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="159753Ubeyd",
+        passwd="200!Voxor",
         database="akillietkinlik"
     )
 
@@ -37,9 +37,11 @@ def admin_login(request):
         admin = verify_user("admin", username, password)  # Admins tablosunda kontrol
         if admin:
             # Admin bilgilerini session'a ekle
+            print(f"Admin giriş başarılı! ID: {admin[0]}")  # Admin ID'si kontrolü
             request.session['admin_id'] = admin[0]  # Örnek: admin[0] = AdminID
             request.session['admin_username'] = admin[1]  # Admin kullanıcı adı
             return redirect('admin_dashboard')  # Admin paneline yönlendirme
+        
         else:
             messages.error(request, "Kullanıcı adı veya şifre hatalı!")
             return redirect('login_admin')  # Tekrar giriş ekranına yönlendirme
@@ -102,7 +104,9 @@ def update_profile(request):
     return redirect('user_dashboard')
 
 def admin_dashboard(request):
-    if 'admin_id' not in request.session:  # Admin oturum açmamışsa
+    print("Session admin_id:", request.session.get('admin_id'))  # Admin ID kontrol
+    if 'admin_id' not in request.session:
+        print("Admin oturumu bulunamadı. Giriş ekranına yönlendirme.")
         return redirect('login_admin')
     
     # Admin bilgilerini çek
@@ -113,7 +117,9 @@ def admin_dashboard(request):
     admin = cursor.fetchone()
     cursor.close()
 
+    print("Admin bilgisi:", admin)  # Admin verilerini kontrol
     return render(request, 'admin_dashboard.html', {'admin': admin})
+
 
 
 # Kullanıcı kontrol paneli view
