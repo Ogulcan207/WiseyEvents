@@ -37,7 +37,6 @@ def admin_login(request):
         admin = verify_user("admin", username, password)  # Admins tablosunda kontrol
         if admin:
             # Admin bilgilerini session'a ekle
-            print(f"Admin giriş başarılı! ID: {admin[0]}")  # Admin ID'si kontrolü
             request.session['admin_id'] = admin[0]  # Örnek: admin[0] = AdminID
             request.session['admin_username'] = admin[1]  # Admin kullanıcı adı
             return redirect('admin_dashboard')  # Admin paneline yönlendirme
@@ -117,7 +116,6 @@ def admin_dashboard(request):
     admin = cursor.fetchone()
     cursor.close()
 
-    print("Admin bilgisi:", admin)  # Admin verilerini kontrol
     return render(request, 'admin_dashboard.html', {'admin': admin})
 
 
