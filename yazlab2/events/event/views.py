@@ -71,36 +71,47 @@ def index(request):
 
 # Profil güncelleme view fonksiyonu
 def update_profile(request):
+    # Kullanıcı oturumu yoksa giriş sayfasına yönlendir
+    if 'user_id' not in request.session:
+        return redirect('login_user')
+
+    # Kullanıcı bilgilerini çek
+    user_id = request.session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+
+    # POST isteği ile güncelleme işlemi
     if request.method == 'POST':
         # Form verilerini al
-        user_id = request.session.get('user_id')
+        user_id = request.POST.get('user_id')  # Kullanıcı ID'sini formdan al
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         email = request.POST.get('email')
         phone_number = request.POST.get('phone_number')
         interests = request.POST.get('interests')
+        il = request.POST.get('il')
         
         # Veritabanı bağlantısı
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         try:
-            # Kullanıcı bilgilerini güncelleme
             cursor.execute("""
                 UPDATE users 
-                SET first_name = %s, last_name = %s, email = %s, phone_number = %s, interests = %s 
+                SET first_name = %s, last_name = %s, email = %s, phone_number = %s, interests = %s, il = %s 
                 WHERE id = %s
-            """, (first_name, last_name, email, phone_number, interests, user_id))
+            """, (first_name, last_name, email, phone_number, interests, il, user_id))
             conn.commit()
             messages.success(request, 'Profiliniz başarıyla güncellendi.')
+            return redirect('user_dashboard')  # Güncelleme sonrası kullanıcı paneline yönlendir
         except mysql.connector.Error as err:
             messages.error(request, f'Hata oluştu: {err}')
         finally:
             cursor.close()
             conn.close()
         
-        return redirect('user_dashboard')
-    return redirect('user_dashboard')
+    # GET isteği için profil sayfasını göster
+    return render(request, 'profile.html', {'user': user})  # Kullanıcı bilgilerini gönder
 
 def admin_dashboard(request):
     print("Session admin_id:", request.session.get('admin_id'))  # Admin ID kontrol

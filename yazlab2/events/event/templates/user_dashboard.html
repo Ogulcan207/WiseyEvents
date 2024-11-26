@@ -107,6 +107,7 @@
             <p><strong>İlgi Alanları:</strong> {{ user.interests }}</p>
             <p><strong>İl:</strong> {{user.il }}</p>
             <p><strong>Toplam Puanı:</strong> {{user.total_points }}</p>
+            <a href="{% url 'profile' %}" class="btn btn-primary">Bilgileri Güncelle</a>
         </div>
 
         <div id="messagesContent" class="hidden">
@@ -114,10 +115,7 @@
             <p>Mesajlarınız burada görünecek.</p>
         </div>
 
-        <div id="createEventContent" class="hidden">
-            <h3>Etkinlik Oluştur</h3>
-            <p>Etkinlik oluşturma alanı buraya gelecek.</p>
-            
+        <div id="createEventContent" class="hidden">        
             <h3>Oluşturduğunuz Etkinlikler</h3>
             <ul>
                 {% for event in created_events %}
