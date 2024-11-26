@@ -76,18 +76,7 @@
     <!-- İçerik Alanı -->
     <div class="content">
         <div id="homeContent">
-            <h3>İlgi Alanlarınıza Göre Etkinlikler</h3>
-            <ul>
-                {% for event in events %}
-                <li>
-                    <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100px; height: 100px; border-radius: 8px;">
-                    <strong>{{ event.name }}</strong> - {{ event.description }}
-                </li>
-                {% empty %}
-                <p>İlgi alanlarınıza uygun etkinlik bulunamadı.</p>
-                {% endfor %}
-            </ul>
-
+            
             <h3>Katıldığınız Etkinlikler</h3>
             <ul>
                 {% for event in joined_events %}
