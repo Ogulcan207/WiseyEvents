@@ -125,7 +125,7 @@ def user_dashboard(request):
     
     user_id = request.session['user_id']
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)  # Sözlük formatında sonuç almak için
+    cursor = conn.cursor(dictionary=True)
     
     # Kullanıcı bilgilerini çek
     cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
@@ -141,12 +141,17 @@ def user_dashboard(request):
     cursor.execute("SELECT * FROM events WHERE id IN (SELECT event_id FROM participants WHERE user_id = %s)", (user_id,))
     joined_events = cursor.fetchall()
 
+    # Kullanıcının oluşturduğu etkinlikleri çek
+    cursor.execute("SELECT * FROM events WHERE olusturanid = %s", (user_id,))
+    created_events = cursor.fetchall()
+
     cursor.close()
 
     return render(request, 'user_dashboard.html', {
         'user': user,
         'events': events,
-        'joined_events': joined_events
+        'joined_events': joined_events,
+        'created_events': created_events  # Oluşturulan etkinlikler
     })
 
 
@@ -209,3 +214,47 @@ def signup(request):
             cursor.close()
             conn.close()
     return render(request, 'signup.html')
+
+def edit_event(request, event_id):
+    if 'user_id' not in request.session:
+        return redirect('login_user')
+    
+    user_id = request.session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Etkinlik bilgilerini çek
+    cursor.execute("SELECT * FROM events WHERE id = %s AND olusturanid = %s", (event_id, user_id))
+    event = cursor.fetchone()
+    
+    if not event:
+        messages.error(request, "Bu etkinliği düzenleme yetkiniz yok.")
+        return redirect('user_dashboard')
+    
+    if request.method == 'POST':
+        # Form verilerini al ve güncelle
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        date = request.POST.get('date')
+        time = request.POST.get('time')
+        duration = request.POST.get('duration')
+        category = request.POST.get('category')
+        
+        try:
+            cursor.execute("""
+                UPDATE events 
+                SET name = %s, description = %s, date = %s, time = %s, duration = %s, category = %s
+                WHERE id = %s AND olusturanid = %s
+            """, (name, description, date, time, duration, category, event_id, user_id))
+            conn.commit()
+            messages.success(request, 'Etkinlik başarıyla güncellendi.')
+        except mysql.connector.Error as err:
+            messages.error(request, f'Hata oluştu: {err}')
+        finally:
+            cursor.close()
+            conn.close()
+        
+        return redirect('user_dashboard')
+    
+    cursor.close()
+    return render(request, 'edit_event.html', {'event': event})

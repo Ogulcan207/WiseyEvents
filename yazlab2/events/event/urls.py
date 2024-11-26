@@ -11,4 +11,5 @@ urlpatterns = [
     path('password/reset/confirmation', views.password_reset_confirmation, name='password_reset_confirmation'),
     path('signup', views.signup, name='signup'),
     path('update_profile', views.update_profile, name='update_profile'),
+    path('edit_event/<int:event_id>/', views.edit_event, name='edit_event'),
 ]

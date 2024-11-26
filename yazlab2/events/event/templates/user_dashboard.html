@@ -82,8 +82,10 @@
                 {% for event in joined_events %}
                 <li>
                     <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100px; height: 100px; border-radius: 8px;">
-                    <strong>{{ event.name }}</strong> - {{ event.description }}
-                </li>
+                    <p><strong>{{ event.name }}</strong> - {{ event.description }}</p>
+                    <p><strong>Tarih:</strong> {{ event.date }}</p> <!-- Tarih bilgisi ekleyin -->
+                    <p><strong>Yer:</strong> {{ event.il }}</p> <!-- Yer bilgisi ekleyin -->
+               </li>
                 {% empty %}
                 <p>Henüz katıldığınız bir etkinlik yok.</p>
                 {% endfor %}
@@ -92,17 +94,19 @@
 
         <div id="profileContent" class="hidden">
             <h3>Kişisel Bilgilerim</h3>
-            <p><strong>Ad:</strong> {{ user.first_name }}</p>
-            <p><strong>Soyad:</strong> {{ user.last_name }}</p>
-            <p><strong>E-posta:</strong> {{ user.email }}</p>
-            <p><strong>Telefon Numarası:</strong> {{ user.phone_number }}</p>
-            <p><strong>İlgi Alanları:</strong> {{ user.interests }}</p>
             {% if user.profile_picture %}
             <p><strong>Profil Resmi:</strong></p>
             <img src="{{ user.profile_picture }}" alt="Profil Resmi" style="width: 100px; height: 100px; border-radius: 50%;">
             {% else %}
                 <p>Profil resmi bulunamadı.</p>
             {% endif %}
+            <p><strong>Ad:</strong> {{ user.first_name }}</p>
+            <p><strong>Soyad:</strong> {{ user.last_name }}</p>
+            <p><strong>E-posta:</strong> {{ user.email }}</p>
+            <p><strong>Telefon Numarası:</strong> {{ user.phone_number }}</p>
+            <p><strong>İlgi Alanları:</strong> {{ user.interests }}</p>
+            <p><strong>İl:</strong> {{user.il }}</p>
+            <p><strong>Toplam Puanı:</strong> {{user.total_points }}</p>
         </div>
 
         <div id="messagesContent" class="hidden">
@@ -113,6 +117,19 @@
         <div id="createEventContent" class="hidden">
             <h3>Etkinlik Oluştur</h3>
             <p>Etkinlik oluşturma alanı buraya gelecek.</p>
+            
+            <h3>Oluşturduğunuz Etkinlikler</h3>
+            <ul>
+                {% for event in created_events %}
+                <li>
+                    <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100px; height: 100px; border-radius: 8px;">
+                    <strong>{{ event.name }}</strong> - {{ event.description }}
+                    <a href="{% url 'edit_event' event.id %}">Düzenle</a>
+                </li>
+                {% empty %}
+                <p>Henüz oluşturduğunuz bir etkinlik yok.</p>
+                {% endfor %}
+            </ul>
         </div>
 
         <div id="eventsContent" class="hidden">
