@@ -8,7 +8,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="200!Voxor",
+        passwd="159753Ubeyd",
         database="akillietkinlik"
     )
 
@@ -58,7 +58,7 @@ def user_login(request):
             # Kullanıcı bilgilerini session'a ekle
             request.session['user_id'] = user[0]  # Örnek: user[0] = UserID
             request.session['username'] = user[1]  # Kullanıcı adı
-            return redirect('user_dashboard')  # Kullanıcı paneline yönlendirme
+            return redirect('main_events')  # Kullanıcı paneline yönlendirme
         else:
             messages.error(request, "Kullanıcı adı veya şifre hatalı!")
             return redirect('login_user')  # Tekrar giriş ekranına yönlendirme
@@ -118,6 +118,13 @@ def admin_dashboard(request):
 
     return render(request, 'admin_dashboard.html', {'admin': admin})
 
+
+
+def main_events(request):
+    if 'user_id' not in request.session:  # Kullanıcı oturum açmamışsa
+        return redirect('login_user')
+
+    return render(request, 'main_event.html')
 
 
 # Kullanıcı kontrol paneli view
