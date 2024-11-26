@@ -50,3 +50,59 @@ p {
 .btn:hover {
     background-color: #0056b3;
 }
+
+body {
+    display: flex;
+    height: 100vh;
+    margin: 0;
+    background-color: #e9ecef;
+    font-family: 'Arial', sans-serif;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #343a40;
+    color: white;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.sidebar a {
+    color: white;
+    text-decoration: none;
+    margin-bottom: 15px;
+    display: block;
+    font-size: 16px;
+}
+
+.sidebar a:hover {
+    text-decoration: underline;
+}
+
+.content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+#profileContent {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h3 {
+    color: #343a40;
+}
+
+p {
+    color: #555;
+}
+
+img {
+    display: block;
+    margin: 10px 0;
+}

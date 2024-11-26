@@ -119,36 +119,36 @@ def admin_dashboard(request):
     return render(request, 'admin_dashboard.html', {'admin': admin})
 
 
-
-# Kullanıcı kontrol paneli view
 def user_dashboard(request):
-    if 'user_id' not in request.session:  # Kullanıcı oturum açmamışsa
+    if 'user_id' not in request.session:
         return redirect('login_user')
     
-    # Kullanıcı bilgilerini çek
     user_id = request.session['user_id']
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)  # Sözlük formatında sonuç almak için
+    
+    # Kullanıcı bilgilerini çek
     cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
+
+    # İlgi alanlarına göre etkinlikleri çek
+    interests = user['interests'].split(",")
+    format_strings = ','.join(['%s'] * len(interests))
+    cursor.execute(f"SELECT * FROM events WHERE category IN ({format_strings})", tuple(interests))
+    events = cursor.fetchall()
+
+    # Kullanıcının katıldığı etkinlikleri çek
+    cursor.execute("SELECT * FROM events WHERE id IN (SELECT event_id FROM participants WHERE user_id = %s)", (user_id,))
+    joined_events = cursor.fetchall()
+
     cursor.close()
 
-    user = {
-        'id': user[0],
-        'username': user[1],
-        'password': user[2],
-        'plain_password': user[3],
-        'email': user[4],
-        'first_name': user[5],
-        'last_name': user[6],
-        'birth_date': user[7],
-        'gender': user[8],
-        'phone_number': user[9],
-        'interests': user[10],
-        'total_points': user[11],
-    }
+    return render(request, 'user_dashboard.html', {
+        'user': user,
+        'events': events,
+        'joined_events': joined_events
+    })
 
-    return render(request, 'user_dashboard.html', {'user': user})
 
 
 

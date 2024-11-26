@@ -41,7 +41,8 @@ def create_tables():
             phone_number VARCHAR(20),
             interests TEXT,
             profile_picture VARCHAR(255),
-            total_points INT DEFAULT 0
+            il VARCHAR(50),
+            total_points INT DEFAULT 20
         )
     """)
 
@@ -54,9 +55,11 @@ def create_tables():
             date DATE,
             time TIME,
             duration TIME,
-            location VARCHAR(100),
             category VARCHAR(50),
-            image_url VARCHAR(255)
+            image_url VARCHAR(255),
+            il VARCHAR(50),
+            olusturanid INT,
+            FOREIGN KEY (olusturanid) REFERENCES users(id)
         )
     """)
 
@@ -112,7 +115,7 @@ def create_tables():
 
 # Kullanıcı sınıfı
 class User:
-    def __init__(self, username, plain_password, email, first_name, last_name, birth_date, gender, phone_number, interests, profile_picture):
+    def __init__(self, username, plain_password, email, first_name, last_name, birth_date, gender, phone_number, interests, profile_picture, il):
         self.username = username
         self.password = hash_password(plain_password)
         self.plain_password = plain_password
@@ -124,12 +127,13 @@ class User:
         self.phone_number = phone_number
         self.interests = interests
         self.profile_picture = profile_picture
+        self.il = il
 
     def save(self):
         cursor.execute("""
-            INSERT INTO users (username, password, plain_password, email, first_name, last_name, birth_date, gender, phone_number, interests, profile_picture)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (self.username, self.password, self.plain_password, self.email, self.first_name, self.last_name, self.birth_date, self.gender, self.phone_number, self.interests, self.profile_picture))
+            INSERT INTO users (username, password, plain_password, email, first_name, last_name, birth_date, gender, phone_number, interests, profile_picture, il)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (self.username, self.password, self.plain_password, self.email, self.first_name, self.last_name, self.birth_date, self.gender, self.phone_number, self.interests, self.profile_picture, self.il))
         db.commit()
 
 # Admin sınıfı
@@ -151,22 +155,24 @@ class Admin:
 
 # Etkinlik sınıfı
 class Event:
-    def __init__(self, name, description, date, time, duration, location, category, image_url):
+    def __init__(self, name, description, date, time, duration, category, image_url, il, olusturanid):
         self.name = name
         self.description = description
         self.date = date
         self.time = time
         self.duration = duration
-        self.location = location
         self.category = category
         self.image_url = image_url
+        self.il = il
+        self.olusturanid = olusturanid
 
     def save(self):
         cursor.execute("""
-            INSERT INTO events (name, description, date, time, duration, location, category, image_url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (self.name, self.description, self.date, self.time, self.duration, self.location, self.category, self.image_url))
+            INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (self.name, self.description, self.date, self.time, self.duration, self.category, self.image_url, self.il, self.olusturanid))
         db.commit()
+
 
 # Katılımcı sınıfı
 class Participant:
@@ -214,27 +220,30 @@ class Point:
         """, (self.points, self.user_id))
         db.commit()
 
-# Profil resim linkleri
+# Profil resim dosya yolları
 profile_pictures = [
-    "https://drive.google.com/file/d/1RWk4DcTJdoPgd-xo8NwMm9r_exUHgqNh/view?usp=drive_link",
-    "https://drive.google.com/file/d/1nJmWMIPCRZBJoVxgScJm1LX6Aec2v6JR/view?usp=drive_link",
-    "https://drive.google.com/file/d/1wTY7xe_qzkyx0-yz5dO6vcKd22HEskVh/view?usp=drive_link",
-    "https://drive.google.com/file/d/1Vaelzf9vXFmv4LPmPZjg25z0epbIowiZ/view?usp=drive_link",
-    "https://drive.google.com/file/d/1SxTr2H1ozqvcJ6lzYRzZlnZEWvdMFtVy/view?usp=drive_link",
-    "https://drive.google.com/file/d/1R42c7fYBBIWvqfdTHxodFoGEMn6WiUmQ/view?usp=drive_link",
-    "https://drive.google.com/file/d/1UkLWNHkxdE-TuRyNtNLAgHTFzOZfVYuI/view?usp=drive_link",
-    "https://drive.google.com/file/d/1sxwLQi-AiJ3KijK4Jq1HjnUulvvzfM1j/view?usp=drive_link",
-    "https://drive.google.com/file/d/1U59B1k0xKw4lzWzA8TKYcJvsik4M8den/view?usp=drive_link",
-    "https://drive.google.com/file/d/19rRVHLc7IfJK6Mmmlbsh3zoIL6bNWOUe/view?usp=drive_link"
+    "/static/profil/profil0.jpg",
+    "/static/profil/profil1.jpg",
+    "/static/profil/profil2.jpg",
+    "/static/profil/profil3.jpg",
+    "/static/profil/profil4.jpg",
+    "/static/profil/profil5.jpg",
+    "/static/profil/profil6.jpg",
+    "/static/profil/profil7.jpg",
+    "/static/profil/profil8.jpg",
+    "/static/profil/profil9.jpg",
+    "/static/profil/profil10.jpg",
+    "/static/profil/profil11.jpg",
+    "/static/profil/profil12.jpg"
 ]
 
 # Etkinlik resim linkleri
 event_images = {
-    "Tiyatro": "https://drive.google.com/file/d/19fDLLhLWjj8nwLu5ejIrLZ7gy3JgXBvK/view?usp=drive_link",
-    "Sinema": "https://drive.google.com/file/d/1ewkZTu-M_KUMi7YkLgPG0_M3SqA9nSIA/view?usp=drive_link",
-    "Opera": "https://drive.google.com/file/d/18Mi4B1tTb5B22ZJDu9RQOZ2Oh5W3EF_l/view?usp=drive_link",
-    "Konser": "https://drive.google.com/file/d/11YC8a4BpRZ02Gadul5M06_zMHPc10PUT/view?usp=drive_link",
-    "Kitap Tanıtımı": "https://drive.google.com/file/d/1Iu9aHAFk8OFMIfMCn93qC6EwQciAy4ng/view?usp=drive_link",
+    "Tiyatro": "/static/event/tiyatro.jpg",
+    "Sinema": "/static/event/sinema.jpg",
+    "Opera": "/static/event/opera.jpg",
+    "Konser": "/static/event/konser.jpg",
+    "Kitap Tanıtımı": "/static/event/kitap.jpg"
 }
 
 # Etkinliklerin birden fazla ilgi alanıyla eşleşmesi
@@ -246,10 +255,17 @@ event_categories = {
     "Konser": ["Müzik", "Sanat"]
 }
 
+cities = [
+    "İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", 
+    "Adana", "Konya", "Gaziantep", "Kayseri", "Eskişehir",
+    "Samsun", "Trabzon", "Denizli", "Şanlıurfa", "Mardin"
+]
+
+
 # Faker ile sahte veri ekleme
 def add_fake_data():
     # Sahte kullanıcılar
-    for _ in range(10):
+    for _ in range(50):
         user = User(
             username=fake.user_name(),
             plain_password=fake.password(),
@@ -260,7 +276,8 @@ def add_fake_data():
             gender=fake.random_element(['Erkek', 'Kadın']),
             phone_number=fake.phone_number()[:10],
             interests=", ".join(fake.words(nb=2, ext_word_list=['Spor', 'Müzik', 'Tarih', 'Sanat', 'Teknoloji', 'Siyaset', 'Magazin', 'Edebiyat', 'Eğitim'])),
-            profile_picture=random.choice(profile_pictures)  # Profil resmini rastgele seç
+            profile_picture=random.choice(profile_pictures),  # Profil resmini rastgele seç
+            il=random.choice(cities)
         )
         user.save()
 
@@ -274,7 +291,7 @@ def add_fake_data():
     )
     admin.save()
 
-    # Sahte etkinlikler
+    # Create fake events
     for event_name, categories in event_categories.items():
         event = Event(
             name=event_name,
@@ -282,35 +299,38 @@ def add_fake_data():
             date=fake.date_this_year(),
             time=fake.time(),
             duration=fake.time(),
-            location=fake.city(),
-            category=", ".join(categories),  # Etkinliğe birden fazla kategori ekleniyor
-            image_url=event_images.get(event_name)
+            category=", ".join(categories),  # Assign multiple categories
+            image_url=event_images.get(event_name),
+            il=random.choice(cities),  # Random city
+            olusturanid=random.randint(1, 10)  # Random user as creator
         )
         event.save()
 
-    # Sahte katılımcılar ve puanlar
-    for i in range(1, 6):
-        participant = Participant(user_id=i, event_id=random.randint(1, 5))
-        participant.save()
-        
-
-    # Sahte mesajlar
-    for _ in range(10):
-        message = Message(
-            sender_id=random.randint(1, 10),
-            event_id=random.randint(1, 5),
-            message_text=fake.sentence(),
-            sent_time=fake.date_time_this_year()
-        )
-        message.save()
-
     print("Tüm sahte veriler başarıyla eklendi.")
+
+# Sahte katılımcılar ve puan ekleme
+def add_fake_participants():
+    for user_id in range(1, 51):  # 50 kullanıcı olduğunu varsayıyoruz
+        # Her kullanıcı için rastgele 1-3 etkinliğe katılım oluştur
+        for _ in range(random.randint(1, 3)):
+            event_id = random.randint(1, 5)  # 5 etkinlik olduğunu varsayıyoruz
+            cursor.execute("INSERT INTO participants (user_id, event_id) VALUES (%s, %s)", (user_id, event_id))
+            
+            # Kullanıcının toplam puanını artır
+            cursor.execute("""
+                UPDATE users
+                SET total_points = total_points + 10
+                WHERE id = %s
+            """, (user_id,))
+    db.commit()
+    print("Sahte katılımcılar başarıyla eklendi.")
 
 # Main fonksiyonu
 if __name__ == "__main__":
     create_tables()
     add_fake_data()
-
+    add_fake_participants()
+    
 # Bağlantıyı kapat
 cursor.close()
 db.close()

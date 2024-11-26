@@ -7,94 +7,157 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {
-            background-color: #f0f2f5;
             display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
             margin: 0;
+            background-color: #e9ecef;
+            font-family: 'Arial', sans-serif;
         }
-        .dashboard-container {
-            background-color: #fff;
-            padding: 2rem;
+        .sidebar {
+            width: 250px;
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            margin-bottom: 15px;
+            display: block;
+            font-size: 16px;
+        }
+        .sidebar a:hover {
+            text-decoration: underline;
+        }
+        .content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        #profileContent, #homeContent, #messagesContent, #createEventContent, #eventsContent {
+            background-color: white;
+            padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            max-width: 600px;
-        }
-        .dashboard-container h2 {
-            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+        }
+        h3 {
             color: #343a40;
         }
-        .profile-info, .update-form {
-            margin-top: 20px;
+        p {
+            color: #555;
+        }
+        img {
+            display: block;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <h2>Kullanıcı Paneli</h2>        
-        <!-- Profil Bilgilerini Gösterme -->
-        <div class="profile-info">
-            <h4>Profil Bilgilerim</h4>
-            <p><strong>Kullanıcı Adı:</strong> {{ user.username }}</p>
+    <!-- Sol Panel -->
+    <div class="sidebar">
+        <h3>Kullanıcı Paneli</h3>
+        <nav>
+            <a href="#" id="homeLink">Anasayfa</a>
+            <a href="#" id="profileLink">Kişisel Bilgilerim</a>
+            <a href="#" id="messagesLink">Mesajlar</a>
+            <a href="#" id="createEventLink">Etkinlik Oluştur</a>
+            <a href="#" id="eventsLink">Etkinlikler</a>
+        </nav>
+    </div>
+
+    <!-- İçerik Alanı -->
+    <div class="content">
+        <div id="homeContent">
+            <h3>İlgi Alanlarınıza Göre Etkinlikler</h3>
+            <ul>
+                {% for event in events %}
+                <li>
+                    <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100px; height: 100px; border-radius: 8px;">
+                    <strong>{{ event.name }}</strong> - {{ event.description }}
+                </li>
+                {% empty %}
+                <p>İlgi alanlarınıza uygun etkinlik bulunamadı.</p>
+                {% endfor %}
+            </ul>
+
+            <h3>Katıldığınız Etkinlikler</h3>
+            <ul>
+                {% for event in joined_events %}
+                <li>
+                    <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100px; height: 100px; border-radius: 8px;">
+                    <strong>{{ event.name }}</strong> - {{ event.description }}
+                </li>
+                {% empty %}
+                <p>Henüz katıldığınız bir etkinlik yok.</p>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div id="profileContent" class="hidden">
+            <h3>Kişisel Bilgilerim</h3>
             <p><strong>Ad:</strong> {{ user.first_name }}</p>
             <p><strong>Soyad:</strong> {{ user.last_name }}</p>
             <p><strong>E-posta:</strong> {{ user.email }}</p>
             <p><strong>Telefon Numarası:</strong> {{ user.phone_number }}</p>
             <p><strong>İlgi Alanları:</strong> {{ user.interests }}</p>
-            <p><strong>Profil Resmi:</strong> <img src="{{ user.profile_image_url }}" alt="Profile Picture" width="100" height="100"></p>
-            <button class="btn btn-secondary" id="editProfileBtn">Bilgilerimi Güncelle</button>
+            {% if user.profile_picture %}
+            <p><strong>Profil Resmi:</strong></p>
+            <img src="{{ user.profile_picture }}" alt="Profil Resmi" style="width: 100px; height: 100px; border-radius: 50%;">
+            {% else %}
+                <p>Profil resmi bulunamadı.</p>
+            {% endif %}
         </div>
 
-        <!-- Bilgilerimi Güncelle Formu (Gizli Başlangıçta) -->
-        <div class="update-form" style="display: none;">
-            <h4>Profil Bilgilerini Güncelle</h4>
-            <form action="/update_profile" method="POST">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label for="first_name">Ad:</label>
-                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}">
-                </div>
-                <div class="form-group">
-                    <label for="last_name">Soyad:</label>
-                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}">
-                </div>
-                <div class="form-group">
-                    <label for="email">E-posta:</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}">
-                </div>
-                <div class="form-group">
-                    <label for="phone_number">Telefon Numarası:</label>
-                    <input type="text" class="form-control" id="phone_number" name="phone_number" value="{{ user.phone_number }}">
-                </div>
-                <div class="form-group">
-                    <label for="interests">İlgi Alanları:</label>
-                    <input type="text" class="form-control" id="interests" name="interests" value="{{ user.interests }}">
-                </div>
-                <button type="submit" class="btn btn-primary">Güncelle</button>
-                <button type="button" class="btn btn-secondary" id="cancelEditBtn">İptal</button>
-            </form>
+        <div id="messagesContent" class="hidden">
+            <h3>Mesajlar</h3>
+            <p>Mesajlarınız burada görünecek.</p>
+        </div>
+
+        <div id="createEventContent" class="hidden">
+            <h3>Etkinlik Oluştur</h3>
+            <p>Etkinlik oluşturma alanı buraya gelecek.</p>
+        </div>
+
+        <div id="eventsContent" class="hidden">
+            <h3>Tüm Etkinlikler</h3>
+            <ul>
+                {% for event in all_events %}
+                <li>
+                    <strong>{{ event.name }}</strong> - {{ event.description }}
+                </li>
+                {% empty %}
+                <p>Hiç etkinlik bulunamadı.</p>
+                {% endfor %}
+            </ul>
         </div>
     </div>
 
     <script>
-        // Güncelle formunu gösterme ve gizleme işlemleri
-        const editProfileBtn = document.getElementById('editProfileBtn');
-        const updateForm = document.querySelector('.update-form');
-        const profileInfo = document.querySelector('.profile-info');
-        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const sections = {
+            homeLink: "homeContent",
+            profileLink: "profileContent",
+            messagesLink: "messagesContent",
+            createEventLink: "createEventContent",
+            eventsLink: "eventsContent"
+        };
 
-        editProfileBtn.addEventListener('click', () => {
-            profileInfo.style.display = 'none';
-            updateForm.style.display = 'block';
-        });
-
-        cancelEditBtn.addEventListener('click', () => {
-            updateForm.style.display = 'none';
-            profileInfo.style.display = 'block';
-        });
+        for (let link in sections) {
+            document.getElementById(link).addEventListener("click", function (e) {
+                e.preventDefault(); // Sayfa yenilenmesini engelle
+                for (let section in sections) {
+                    document.getElementById(sections[section]).classList.add("hidden");
+                }
+                document.getElementById(sections[link]).classList.remove("hidden");
+            });
+        }
     </script>
 </body>
 </html>
