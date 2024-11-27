@@ -58,6 +58,21 @@
             display: block;
             margin: 10px 0;
         }
+        .mesaj-btn {
+            background-color: #007bff; /* Butonun arka plan rengini değiştir */
+            color: white; /* Yazı rengini beyaz yap */
+            border-radius: 30px; /* Butonun köşelerini yuvarla */
+            padding: 5px 15px; /* İçeriğin etrafındaki boşlukları ayarla */
+            border: none; /* Butonun etrafındaki kenarlığı kaldır */
+            transition: all 0.3s ease; /* Buton üzerinde geçiş efektini ekle */
+        }
+        .mesaj-btn:hover {
+            background-color: #0056b3; /* Hover durumunda butonun rengini değiştir */
+            transform: scale(1.05); /* Hover durumunda butonu biraz büyüt */
+        }
+        .mesaj-btn:focus {
+            outline: none; /* Focus olduğunda kenar çizgisi yok et */
+        }
     </style>
 </head>
 <body>
@@ -112,8 +127,20 @@
 
         <div id="messagesContent" class="hidden">
             <h3>Mesajlar</h3>
-            <p>Mesajlarınız burada görünecek.</p>
+            <ul style="display: flex; flex-wrap: wrap; list-style-type: none; padding: 0;">
+                {% for event in joined_events %}
+                <li style="flex: 1 1 calc(33.33% - 20px); margin: 10px; box-sizing: border-box;">
+                    <img src="{{ event.image_url }}" style="width: 100%; height: auto; border-radius: 8px;">
+                    <p><strong>{{ event.name }}</strong></p>
+                    <p><strong>{{ event.description }}</strong></p>
+                    <a href="{% url 'event_messages' event.id %}" class="btn btn-primary mt-3 mesaj-btn">Mesajlar</a>
+                </li>
+                {% empty %}
+                <p>Henüz katıldığınız bir etkinlik yok.</p>
+                {% endfor %}
+            </ul>
         </div>
+
 
         <div id="createEventContent" class="hidden">        
             <h3>Oluşturduğunuz Etkinlikler</h3>

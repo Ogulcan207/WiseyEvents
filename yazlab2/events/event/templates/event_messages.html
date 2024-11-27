@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ event.name }} - Mesajlar</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .message {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .message-header {
+            font-weight: bold;
+        }
+        .message-content {
+            margin-top: 5px;
+        }
+        .message-time {
+            font-size: 0.9em;
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h3>{{ event.name }} - Mesajlar</h3>
+
+        <!-- Mesajlar -->
+        <div id="messagesContent">
+            <ul class="list-unstyled">
+                {% for message in messages %}
+                <li class="message">
+                    <div class="message-header">{{ message.sender_id }} </div>
+                    <div class="message-content">
+                        <p>{{ message.message_text }}</p>
+                    </div>
+                </li>
+                {% empty %}
+                <p>Henüz mesaj bulunmamaktadır.</p>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Mesaj gönderme formu -->
+        <div>
+            <form method="POST">
+                {% csrf_token %}
+                <textarea name="content" class="form-control" placeholder="Mesajınızı yazın..." rows="4"></textarea>
+                <button type="submit" class="btn btn-primary mt-3">Mesaj Gönder</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

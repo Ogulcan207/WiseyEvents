@@ -2,13 +2,15 @@ import mysql.connector
 from django.shortcuts import render, redirect
 from django.contrib import messages
 import bcrypt
+from datetime import datetime
+
 
 # Veritabanı bağlantısını kurma fonksiyonu
 def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="200!Voxor",
+        passwd="159753Ubeyd",
         database="akillietkinlik"
     )
 
@@ -151,6 +153,7 @@ def user_dashboard(request):
     # Kullanıcının katıldığı etkinlikleri çek
     cursor.execute("SELECT * FROM events WHERE id IN (SELECT event_id FROM participants WHERE user_id = %s)", (user_id,))
     joined_events = cursor.fetchall()
+    print('joined: ' + str(joined_events))
 
     # Kullanıcının oluşturduğu etkinlikleri çek
     cursor.execute("SELECT * FROM events WHERE olusturanid = %s", (user_id,))
@@ -166,6 +169,48 @@ def user_dashboard(request):
     })
 
 
+def event_messages(request, event_id):
+    if 'user_id' not in request.session:
+        return redirect('login_user')
+
+    user_id = request.session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Etkinlik bilgilerini çek
+    cursor.execute("SELECT * FROM events WHERE id = %s", (event_id,))
+    event = cursor.fetchone()
+
+    if not event:
+        messages.error(request, "Böyle bir etkinlik bulunamadı.")
+        return redirect('user_dashboard')
+
+    # Etkinliğe ait mesajları çek
+    cursor.execute("SELECT * FROM messages WHERE event_id = %s ORDER BY sent_time ASC", (event_id,))
+    messages_data = cursor.fetchall()
+
+    if request.method == 'POST':
+        content = request.POST.get('content')
+        if content:
+            try:
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                cursor.execute("""
+                    INSERT INTO messages (sender_id, event_id, message_text, sent_time)
+                    VALUES (%s, %s, %s, %s)
+                """, (user_id, event_id, content, current_time))
+                conn.commit()
+                messages.success(request, 'Mesaj başarıyla gönderildi.')
+            except mysql.connector.Error as err:
+                messages.error(request, f'Hata oluştu: {err}')
+        return redirect('event_messages', event_id=event_id)
+
+    cursor.close()
+    conn.close()
+
+    return render(request, 'event_messages.html', {
+        'event': event,
+        'messages': messages_data,
+    })
 
 
 def get_user_info(username):
