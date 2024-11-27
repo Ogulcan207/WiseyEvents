@@ -167,9 +167,9 @@ class Event:
         self.olusturanid = olusturanid
 
     def save(self):
-        cursor.execute("""
+        cursor.execute(""" 
             INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (self.name, self.description, self.date, self.time, self.duration, self.category, self.image_url, self.il, self.olusturanid))
         db.commit()
 
@@ -291,18 +291,18 @@ def add_fake_data():
     )
     admin.save()
 
-    # Create fake events
-    for event_name, categories in event_categories.items():
+    # Create fake events using event_images
+    for event_name, image_url in event_images.items():
         event = Event(
             name=event_name,
             description=fake.text(max_nb_chars=200),
             date=fake.date_this_year(),
             time=fake.time(),
             duration=fake.time(),
-            category=", ".join(categories),  # Assign multiple categories
-            image_url=event_images.get(event_name),
-            il=random.choice(cities),  # Random city
-            olusturanid=random.randint(1, 10)  # Random user as creator
+            category=", ".join(event_categories.get(event_name, [])),  # Kategorileri al
+            image_url=image_url,  # event_images dizisinden resim URL'si
+            il=random.choice(cities),  # Rastgele şehir
+            olusturanid=random.randint(1, 50)  # Rastgele kullanıcı ID'si
         )
         event.save()
 
