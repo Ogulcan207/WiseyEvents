@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Etkinlik Düzenle</title>
+    <title>Yeni Etkinlik Oluştur</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {
@@ -38,9 +38,6 @@
             padding: 20px;
             overflow-y: auto;
         }
-        h3 {
-            color: #343a40;
-        }
         form {
             background-color: white;
             padding: 20px;
@@ -52,7 +49,7 @@
             margin-top: 10px;
             color: #555;
         }
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             padding: 8px;
             margin-top: 5px;
@@ -81,39 +78,50 @@
             <a href="{% url 'user_dashboard' %}">Anasayfa</a>
             <a href="{% url 'user_dashboard' %}">Kişisel Bilgilerim</a>
             <a href="{% url 'user_dashboard' %}">Mesajlar</a>
-            <a href="{% url 'user_dashboard' %}">Etkinlik Oluştur</a>
+            <a href="{% url 'create_event' %}" id="createEventLink">Etkinlik Oluştur</a>
             <a href="{% url 'user_dashboard' %}">Etkinlikler</a>
         </nav>
     </div>
 
     <!-- İçerik Alanı -->
     <div class="content">
-        <h3>Etkinlik Düzenle</h3>
-        <form method="POST" action="{% url 'edit_event' event.id %}">
+        <h3>Yeni Etkinlik Oluştur</h3>
+        <form method="POST">
             {% csrf_token %}
             <label for="name">Etkinlik Adı:</label>
-            <input type="text" id="name" name="name" value="{{ event.name }}" required>
+            <input type="text" id="name" name="name" required>
 
             <label for="description">Açıklama:</label>
-            <textarea id="description" name="description" required>{{ event.description }}</textarea>
+            <textarea id="description" name="description" required></textarea>
 
             <label for="date">Tarih:</label>
-            <input type="date" id="date" name="date" value="{{ event.date }}" required>
+            <input type="date" id="date" name="date" required>
 
             <label for="time">Saat:</label>
-            <input type="time" id="time" name="time" value="{{ event.time }}" required>
+            <input type="time" id="time" name="time" required>
 
             <label for="duration">Süre:</label>
-            <input type="time" id="duration" name="duration" value="{{ event.duration }}" required>
+            <input type="time" id="duration" name="duration" required>
 
             <label for="category">Kategori:</label>
-            <input type="text" id="category" name="category" value="{{ event.category }}" required>
+            <select id="category" name="category" required>
+                <option value="">Seçiniz</option>
+                {% for event_name in event_images.keys %}
+                    <option value="{{ event_name }}">{{ event_name }}</option>
+                {% endfor %}
+            </select>
 
             <label for="il">İl:</label>
-            <input type="text" id="il" name="il" value="{{ event.il }}" required>
+            <input type="text" id="il" name="il" required>
 
-            <button type="submit">Güncelle</button>
+            <button type="submit">Etkinliği Oluştur</button>
         </form>
     </div>
+
+    <script>
+        document.getElementById("createEventLink").addEventListener("click", function (e) {
+            window.location.href = this.href;
+        });
+    </script>
 </body>
 </html>

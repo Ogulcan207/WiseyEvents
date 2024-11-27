@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 import bcrypt
 from datetime import datetime
+from .generate import event_images
 
 
 # Veritabanı bağlantısını kurma fonksiyonu
@@ -10,7 +11,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="159753Ubeyd",
+        passwd="200!Voxor",
         database="akillietkinlik"
     )
 
@@ -153,11 +154,21 @@ def user_dashboard(request):
     # Kullanıcının katıldığı etkinlikleri çek
     cursor.execute("SELECT * FROM events WHERE id IN (SELECT event_id FROM participants WHERE user_id = %s)", (user_id,))
     joined_events = cursor.fetchall()
-    print('joined: ' + str(joined_events))
 
     # Kullanıcının oluşturduğu etkinlikleri çek
     cursor.execute("SELECT * FROM events WHERE olusturanid = %s", (user_id,))
     created_events = cursor.fetchall()
+
+    # Kullanıcının oluşturduğu etkinliklere ait mesajları çek
+    messages_data = []
+    for event in created_events:
+        cursor.execute("SELECT * FROM messages WHERE event_id = %s ORDER BY sent_time ASC", (event['id'],))
+        messages = cursor.fetchall()
+        messages_data.append({
+            'event': event,
+            'messages': messages,
+            'image_url': event['image_url']  # Etkinlik resmini ekle
+        })
 
     cursor.close()
 
@@ -165,7 +176,8 @@ def user_dashboard(request):
         'user': user,
         'events': events,
         'joined_events': joined_events,
-        'created_events': created_events  # Oluşturulan etkinlikler
+        'created_events': created_events,  # Oluşturulan etkinlikler
+        'messages_data': messages_data  # Oluşturulan etkinliklere ait mesajlar
     })
 
 
@@ -295,13 +307,14 @@ def edit_event(request, event_id):
         time = request.POST.get('time')
         duration = request.POST.get('duration')
         category = request.POST.get('category')
+        il = request.POST.get('il')
         
         try:
-            cursor.execute("""
+            cursor.execute(""" 
                 UPDATE events 
-                SET name = %s, description = %s, date = %s, time = %s, duration = %s, category = %s
+                SET name = %s, description = %s, date = %s, time = %s, duration = %s, category = %s, il = %s
                 WHERE id = %s AND olusturanid = %s
-            """, (name, description, date, time, duration, category, event_id, user_id))
+            """, (name, description, date, time, duration, category, il, event_id, user_id))
             conn.commit()
             messages.success(request, 'Etkinlik başarıyla güncellendi.')
         except mysql.connector.Error as err:
@@ -314,3 +327,36 @@ def edit_event(request, event_id):
     
     cursor.close()
     return render(request, 'edit_event.html', {'event': event})
+
+def create_event(request):
+    if 'user_id' not in request.session:
+        return redirect('login_user')
+    
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        date = request.POST.get('date')
+        time = request.POST.get('time')
+        duration = request.POST.get('duration')
+        category = request.POST.get('category')
+        il = request.POST.get('il')
+        
+        # Veritabanı bağlantısını kur
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(""" 
+                INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (name, description, date, time, duration, category, event_images.get(category, ""), il, request.session['user_id']))
+            conn.commit()
+            messages.success(request, 'Etkinlik başarıyla oluşturuldu.')
+            return redirect('user_dashboard')
+        except mysql.connector.Error as err:
+            messages.error(request, f'Hata oluştu: {err}')
+        finally:
+            cursor.close()
+            conn.close()
+        return redirect('user_dashboard')
+    return render(request, 'create_event.html', {'event_images': event_images})
