@@ -395,18 +395,30 @@ def all_events(request):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Kullanıcının katıldığı etkinlikleri çek
+    # Kullanıcının ilgi alanlarını al
+    cursor.execute("SELECT interests FROM users WHERE id = %s", (user_id,))
+    user_interests = cursor.fetchone()['interests'].split(',')
+
+    # Kullanıcının katıldığı etkinlikleri al
     cursor.execute("SELECT event_id FROM participants WHERE user_id = %s", (user_id,))
     user_joined_events = [row['event_id'] for row in cursor.fetchall()]
 
-    # Tüm etkinlikleri çek
+    # Kullanıcının coğrafi konumunu al (örneğin, şehir)
+    cursor.execute("SELECT il FROM users WHERE id = %s", (user_id,))
+    user_location = cursor.fetchone()['il']
+
+    # Tüm etkinlikleri al
     cursor.execute("SELECT * FROM events")
     events = cursor.fetchall()
+
+    # Etkinlikleri filtrele ve sıralama yap
+    recommended_events = filter_and_sort_events(events, user_interests, user_joined_events, user_location)
+
     cursor.close()
 
     return render(request, 'all_events.html', {
-        'events': events,
-        'user_joined_events': user_joined_events,  # Kullanıcının katıldığı etkinliklerin ID'leri
+        'events': recommended_events,
+        'user_joined_events': user_joined_events,
         'categories': list(set(event['category'] for event in events))  # Kategorileri benzersiz hale getir
     })
 
@@ -435,3 +447,27 @@ def join_event(request, event_id):
         conn.close()
 
     return redirect('all_events')  # Katıldıktan sonra tüm etkinlikler sayfasına yönlendir
+
+def filter_and_sort_events(events, user_interests, user_joined_events, user_location):
+    recommended_events = []
+
+    # İlgi alanına göre öneri
+    for event in events:
+        if any(interest in event['category'] for interest in user_interests):
+            recommended_events.append((event, 3))  # İlgi alanı uyumu için yüksek puan
+
+    # Katılım geçmişine göre öneri
+    for event in events:
+        if event['id'] in user_joined_events:
+            recommended_events.append((event, 2))  # Katılım geçmişi için orta puan
+
+    # Coğrafi konuma göre öneri
+    for event in events:
+        if event['il'] == user_location:
+            recommended_events.append((event, 1))  # Coğrafi konum için düşük puan
+
+    # Önerileri puanlarına göre sırala
+    recommended_events.sort(key=lambda x: x[1], reverse=True)
+
+    # Sadece etkinlikleri döndür
+    return [event for event, _ in recommended_events]

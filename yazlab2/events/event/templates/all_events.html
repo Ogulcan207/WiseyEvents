@@ -105,6 +105,7 @@
         </div>
 
         <div class="event-list" id="eventList">
+            <h2>Önerilen Etkinlikler</h2>
             {% for event in events %}
             <div class="event-item {{ event.category|slugify }}" data-category="{{ event.category }}" data-event-id="{{ event.id }}">
                 <h5>{{ event.name }}</h5>
