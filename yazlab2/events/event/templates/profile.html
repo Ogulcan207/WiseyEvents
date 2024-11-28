@@ -71,12 +71,17 @@
         button:hover {
             background-color: #0056b3;
         }
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <!-- Sol Panel -->
     <div class="sidebar">
-        <h3>Kullanıcı Paneli</h3>
+        <h3 style="color: white;">Smart Activity</h3> <!-- Başlık buraya eklendi -->
         <nav>
             <a href="{% url 'user_dashboard' %}">Anasayfa</a>
             <a href="{% url 'user_dashboard' %}">Kişisel Bilgilerim</a>
@@ -89,6 +94,13 @@
     <!-- İçerik Alanı -->
     <div class="content">
         <h3>Profil Bilgileri</h3>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
         <form method="POST" action="{% url 'profile' %}">
             {% csrf_token %}
             <input type="hidden" name="user_id" value="{{ user.id }}">
@@ -111,8 +123,30 @@
             <label for="city">İl:</label>
             <input type="text" id="city" name="city" value="{{ user.il }}" required>
 
+            <label for="profile_picture">Profil Resmini Değiştir:</label>
+            <div>
+                {% for picture in profile_pictures %}
+                <div style="display: inline-block; margin-right: 10px;">
+                    <input type="radio" id="picture_{{ forloop.counter }}" name="profile_picture" value="{{ picture }}" {% if user.profile_picture == picture %}checked{% endif %}>
+                    <label for="picture_{{ forloop.counter }}">
+                        <img src="{{ picture }}" alt="Profil Resmi" style="width: 50px; height: 50px; border-radius: 50%;">
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+
             <button type="submit">Güncelle</button>
         </form>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const messageList = document.getElementById("message-list");
+            if (messageList) {
+                setTimeout(() => {
+                    messageList.style.display = 'none';
+                }, 1000); // 1000 ms = 1 saniye
+            }
+        });
+    </script>
 </body>
 </html>

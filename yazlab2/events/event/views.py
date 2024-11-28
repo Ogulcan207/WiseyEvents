@@ -3,7 +3,10 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 import bcrypt
 from datetime import datetime
-from .generate import event_images
+from .generate import event_images, profile_pictures, hash_password
+import random
+import string
+import difflib
 
 
 # Veritabanı bağlantısını kurma fonksiyonu
@@ -11,7 +14,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="159753Ubeyd",
+        passwd="200!Voxor",
         database="akillietkinlik"
     )
 
@@ -96,14 +99,15 @@ def update_profile(request):
         phone_number = request.POST.get('phone_number')
         interests = request.POST.get('interests')
         il = request.POST.get('il')
-        
+        profile_picture = request.POST.get('profile_picture')  # Profil resmini al
+
         # Veritabanı bağlantısı
         try:
-            cursor.execute("""
+            cursor.execute(""" 
                 UPDATE users 
-                SET first_name = %s, last_name = %s, email = %s, phone_number = %s, interests = %s, il = %s 
+                SET first_name = %s, last_name = %s, email = %s, phone_number = %s, interests = %s, il = %s, profile_picture = %s 
                 WHERE id = %s
-            """, (first_name, last_name, email, phone_number, interests, il, user_id))
+            """, (first_name, last_name, email, phone_number, interests, il, profile_picture, user_id))
             conn.commit()
             messages.success(request, 'Profiliniz başarıyla güncellendi.')
             return redirect('user_dashboard')  # Güncelleme sonrası kullanıcı paneline yönlendir
@@ -114,7 +118,7 @@ def update_profile(request):
             conn.close()
         
     # GET isteği için profil sayfasını göster
-    return render(request, 'profile.html', {'user': user})  # Kullanıcı bilgilerini gönder
+    return render(request, 'profile.html', {'user': user, 'profile_pictures': profile_pictures})  # Kullanıcı bilgilerini gönder
 
 def admin_dashboard(request):
     print("Session admin_id:", request.session.get('admin_id'))  # Admin ID kontrol
@@ -177,7 +181,8 @@ def user_dashboard(request):
         'events': events,
         'joined_events': joined_events,
         'created_events': created_events,  # Oluşturulan etkinlikler
-        'messages_data': messages_data  # Oluşturulan etkinliklere ait mesajlar
+        'messages_data': messages_data,  # Oluşturulan etkinliklere ait mesajlar
+        'profile_pictures': profile_pictures  # Profil resimlerini gönder
     })
 
 
@@ -197,8 +202,14 @@ def event_messages(request, event_id):
         messages.error(request, "Böyle bir etkinlik bulunamadı.")
         return redirect('user_dashboard')
 
-    # Etkinliğe ait mesajları çek
-    cursor.execute("SELECT * FROM messages WHERE event_id = %s ORDER BY sent_time ASC", (event_id,))
+    # Etkinliğe ait mesajları, kullanıcı adlarını ve profil fotoğraflarını çek
+    cursor.execute("""
+        SELECT messages.*, users.username, users.profile_picture 
+        FROM messages 
+        JOIN users ON messages.sender_id = users.id 
+        WHERE event_id = %s 
+        ORDER BY sent_time ASC
+    """, (event_id,))
     messages_data = cursor.fetchall()
 
     if request.method == 'POST':
@@ -245,14 +256,40 @@ def get_user_info(username):
 # Şifre sıfırlama view
 def password_reset(request):
     if request.method == 'POST':
-        # Şifre sıfırlama işlemleri yapılabilir
-        messages.success(request, 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.')
-        return redirect('password_reset_confirmation')
+        email = request.POST.get('email')
+        last_password = request.POST.get('last_password')
+
+        # Kullanıcının e-posta adresini kontrol et
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+
+        if user:
+            # Benzerlik oranını kontrol et
+            similarity = difflib.SequenceMatcher(None, user[3], last_password).ratio()  # user[3] = plain_password
+            if similarity >= 0.3:  # benzerlik
+                # Yeni rastgele şifre oluştur
+                new_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))  # 8 karakterli yeni şifre
+                hashed_password = hash_password(new_password)  # Yeni şifreyi hash'le
+
+                # Kullanıcının şifresini güncelle
+                cursor.execute("UPDATE users SET password = %s, plain_password = %s WHERE id = %s", (hashed_password, new_password, user[0]))
+                conn.commit()
+
+                # Yeni şifreyi ekranda göster
+                return render(request, 'password_reset_confirmation.html', {'new_password': new_password})
+            else:
+                messages.error(request, 'Hatırladığınız şifre yeterince benzer değil.')
+        else:
+            messages.error(request, 'E-posta adresi bulunamadı.')
+    
     return render(request, 'password_reset.html')
 
 # Şifre sıfırlama onayı view
 def password_reset_confirmation(request):
     return render(request, 'password_reset_confirmation.html')
+
 
 # Yeni kullanıcı kayıt view
 def signup(request):
@@ -262,7 +299,13 @@ def signup(request):
         email = request.POST.get('email')
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
-        
+        birth_date = request.POST.get('birth_date')  # Doğum tarihi
+        gender = request.POST.get('gender')  # Cinsiyet
+        phone_number = request.POST.get('phone_number')  # Telefon numarası
+        interests = request.POST.get('interests')  # İlgi alanları
+        profile_picture = request.POST.get('profile_picture')  # Kullanıcının seçtiği profil resmi
+        il = request.POST.get('il')  # İl
+
         hashed_password = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
         # Kullanıcıyı veritabanına ekleme
@@ -270,18 +313,18 @@ def signup(request):
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                INSERT INTO users (username, password, plain_password, email, first_name, last_name)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (username, hashed_password, plain_password, email, first_name, last_name))
+                INSERT INTO users (username, password, plain_password, email, first_name, last_name, birth_date, gender, phone_number, interests, profile_picture, il, total_points)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (username, hashed_password, plain_password, email, first_name, last_name, birth_date, gender, phone_number, interests, profile_picture, il, 20))  # 20 puan ekleniyor
             conn.commit()
-            messages.success(request, 'Kayıt işleminiz başarıyla tamamlandı.')
+            messages.success(request, 'Kayıt işleminiz başarıyla tamamlandı ve 20 puan kazandınız.')
             return redirect('index')
         except mysql.connector.Error as err:
             messages.error(request, f'Hata oluştu: {err}')
         finally:
             cursor.close()
             conn.close()
-    return render(request, 'signup.html')
+    return render(request, 'signup.html', {'profile_pictures': profile_pictures})  # Profil resimlerini gönderin
 
 def edit_event(request, event_id):
     if 'user_id' not in request.session:
@@ -411,15 +454,21 @@ def all_events(request):
     cursor.execute("SELECT * FROM events")
     events = cursor.fetchall()
 
-    # Etkinlikleri filtrele ve sıralama yap
-    recommended_events = filter_and_sort_events(events, user_interests, user_joined_events, user_location)
+    # Tüm etkinliklerin kategorilerini al ve parçala
+    cursor.execute("SELECT DISTINCT category FROM events")
+    categories = set()
+    for row in cursor.fetchall():
+        for category in row['category'].split(','):
+            categories.add(category.strip())
 
     cursor.close()
 
     return render(request, 'all_events.html', {
-        'events': recommended_events,
+        'events': events,  # Tüm etkinlikleri gönder
         'user_joined_events': user_joined_events,
-        'categories': list(set(event['category'] for event in events))  # Kategorileri benzersiz hale getir
+        'categories': list(categories),  # Set'i listeye çevirerek gönder
+        'user_interests': user_interests,  # Kullanıcının ilgi alanlarını gönder
+        'user_location': user_location  # Kullanıcının konumunu gönder
     })
 
 def join_event(request, event_id):

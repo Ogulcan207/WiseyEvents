@@ -76,7 +76,7 @@
 <body>
     <!-- Sol Panel -->
     <div class="sidebar">
-        <h3>Kullanıcı Paneli</h3>
+        <h3 style="color: white;">Smart Activity</h3> <!-- Başlık buraya eklendi -->
         <nav>
             <a href="{% url 'user_dashboard' %}">Anasayfa</a>
             <a href="{% url 'user_dashboard' %}">Kişisel Bilgilerim</a>
@@ -89,6 +89,13 @@
     <!-- İçerik Alanı -->
     <div class="content">
         <h3>Etkinlik Düzenle</h3>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
         <form method="POST" action="{% url 'edit_event' event.id %}">
             {% csrf_token %}
             <label for="name">Etkinlik Adı:</label>
@@ -120,5 +127,15 @@
             <button type="submit" onclick="return confirm('Bu etkinliği silmek istediğinize emin misiniz?');">Sil</button>
         </form>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const messageList = document.getElementById("message-list");
+            if (messageList) {
+                setTimeout(() => {
+                    messageList.style.display = 'none';
+                }, 1000); // 1000 ms = 1 saniye
+            }
+        });
+    </script>
 </body>
 </html>

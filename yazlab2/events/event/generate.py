@@ -7,7 +7,7 @@ import bcrypt
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    passwd="159753Ubeyd",
+    passwd="200!Voxor",
     database="akillietkinlik"
 )
 cursor = db.cursor()
@@ -171,8 +171,11 @@ class Event:
             INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (self.name, self.description, self.date, self.time, self.duration, self.category, self.image_url, self.il, self.olusturanid))
+        
+        # Etkinliği oluşturan kullanıcıyı participants tablosuna ekle
+        cursor.execute("INSERT INTO participants (user_id, event_id) VALUES (%s, LAST_INSERT_ID())", (self.olusturanid,))
+        
         db.commit()
-
 
 # Katılımcı sınıfı
 class Participant:
@@ -264,12 +267,19 @@ cities = [
 
 # Faker ile sahte veri ekleme
 def add_fake_data():
+    existing_emails = set()  # Mevcut e-posta adreslerini saklamak için bir küme
+
     # Sahte kullanıcılar
     for _ in range(50):
+        email = fake.email()
+        while email in existing_emails:  # E-posta adresinin benzersiz olmasını sağla
+            email = fake.email()
+        existing_emails.add(email)  # E-posta adresini küme ekle
+
         user = User(
             username=fake.user_name(),
             plain_password=fake.password(),
-            email=fake.email(),
+            email=email,
             first_name=fake.first_name(),
             last_name=fake.last_name(),
             birth_date=fake.date_of_birth(minimum_age=18, maximum_age=65),
@@ -294,6 +304,7 @@ def add_fake_data():
     # Create fake events using event_images
     for event_name, image_url in event_images.items():
         for _ in range(3):  # Her etkinlik için 3 farklı etkinlik oluştur
+            olusturanid = random.randint(1, 50)  # Rastgele kullanıcı ID'si
             event = Event(
                 name=event_name,
                 description=fake.text(max_nb_chars=200),
@@ -303,9 +314,13 @@ def add_fake_data():
                 category=", ".join(event_categories.get(event_name, [])),  # Kategorileri al
                 image_url=image_url,  # event_images dizisinden resim URL'si
                 il=random.choice(cities),  # Rastgele şehir
-                olusturanid=random.randint(1, 50)  # Rastgele kullanıcı ID'si
+                olusturanid=olusturanid  # Rastgele kullanıcı ID'si
             )
             event.save()
+
+            # Kullanıcıya 15 puan ekle
+            cursor.execute("UPDATE users SET total_points = total_points + 15 WHERE id = %s", (olusturanid,))
+            db.commit()
 
     print("Tüm sahte veriler başarıyla eklendi.")
 

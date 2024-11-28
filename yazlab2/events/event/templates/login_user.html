@@ -29,11 +29,11 @@
         <h2 class="text-center">Kullanıcı Girişi</h2>
 
         {% if messages %}
-            <div class="alert alert-danger">
+            <ul class="messages">
                 {% for message in messages %}
-                    <p>{{ message }}</p>
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
                 {% endfor %}
-            </div>
+            </ul>
         {% endif %}
 
         <form action="/login/user" method="POST">
@@ -53,5 +53,15 @@
             </div>
         </form>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const messageList = document.getElementById("message-list");
+            if (messageList) {
+                setTimeout(() => {
+                    messageList.style.display = 'none';
+                }, 1000); // 1000 ms = 1 saniye
+            }
+        });
+    </script>
 </body>
 </html>

@@ -79,7 +79,7 @@
 <body>
     <!-- Sol Panel -->
     <div class="sidebar">
-        <h3>Kullanıcı Paneli</h3>
+        <h3 style="color: white;">Smart Activity</h3> <!-- Başlık buraya eklendi -->
         <nav>
             <a href="{% url 'user_dashboard' %}" id="homeLink">Anasayfa</a>
             <a href="{% url 'user_dashboard' %}" id="profileLink">Kişisel Bilgilerim</a>
@@ -95,19 +95,32 @@
 
         <!-- Filtreleme Alanı -->
         <div class="filter-container">
-            <label for="categoryFilter">İlgi Alanına Göre Filtrele:</label>
+            <label for="categoryFilter">Kategorilere Göre Filtrele:</label>
             <select id="categoryFilter" class="form-control">
-                <option value="">Tüm İlgi Alanları</option>
+                <option value="">Tüm Kategoriler</option>
                 {% for category in categories %}
                 <option value="{{ category }}">{{ category }}</option>
                 {% endfor %}
             </select>
+
+            <label for="interestFilter">İlgi Alanına Göre Filtrele:</label>
+            <select id="interestFilter" class="form-control">
+                <option value="">Tüm İlgi Alanları</option>
+                {% for interest in user_interests %}
+                <option value="{{ interest }}">{{ interest }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="locationFilter">Şehre Göre Filtrele:</label>
+            <select id="locationFilter" class="form-control">
+                <option value="">Tüm Şehirler</option>
+                <option value="{{ user_location }}">{{ user_location }}</option>
+            </select>
         </div>
 
         <div class="event-list" id="eventList">
-            <h2>Önerilen Etkinlikler</h2>
             {% for event in events %}
-            <div class="event-item {{ event.category|slugify }}" data-category="{{ event.category }}" data-event-id="{{ event.id }}">
+            <div class="event-item" data-category="{{ event.category }}" data-interest="{{ event.interest }}" data-location="{{ event.il }}">
                 <h5>{{ event.name }}</h5>
                 <img src="{{ event.image_url }}" alt="{{ event.name }}" class="event-image">
                 <p>{{ event.description }}</p>
@@ -125,19 +138,32 @@
     </div>
 
     <script>
-        document.getElementById('categoryFilter').addEventListener('change', function() {
-            const selectedCategory = this.value;
+        document.getElementById('categoryFilter').addEventListener('change', filterEvents);
+        document.getElementById('interestFilter').addEventListener('change', filterEvents);
+        document.getElementById('locationFilter').addEventListener('change', filterEvents);
+
+        function filterEvents() {
+            const selectedCategory = document.getElementById('categoryFilter').value;
+            const selectedInterest = document.getElementById('interestFilter').value;
+            const selectedLocation = document.getElementById('locationFilter').value;
             const events = document.querySelectorAll('.event-item');
 
             events.forEach(event => {
                 const eventCategory = event.getAttribute('data-category');
-                if (selectedCategory === "" || eventCategory.includes(selectedCategory)) {
+                const eventInterest = event.getAttribute('data-interest');
+                const eventLocation = event.getAttribute('data-location');
+
+                const categoryMatch = selectedCategory === "" || eventCategory.includes(selectedCategory);
+                const interestMatch = selectedInterest === "" || eventInterest.includes(selectedInterest);
+                const locationMatch = selectedLocation === "" || eventLocation === selectedLocation;
+
+                if (categoryMatch && interestMatch && locationMatch) {
                     event.style.display = "block"; // Göster
                 } else {
                     event.style.display = "none"; // Gizle
                 }
             });
-        });
+        }
 
         // Kullanıcının katıldığı etkinlikleri farklı renkte göster
         const joinedEvents = JSON.parse(document.getElementById('joinedEventsData').textContent);
@@ -145,6 +171,15 @@
             const eventElement = document.querySelector(`.event-item[data-event-id="${eventId}"]`);
             if (eventElement) {
                 eventElement.classList.add('joined-event');
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const messageList = document.getElementById("message-list");
+            if (messageList) {
+                setTimeout(() => {
+                    messageList.style.display = 'none';
+                }, 1000); // 1000 ms = 1 saniye
             }
         });
     </script>
