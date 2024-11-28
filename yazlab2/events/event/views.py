@@ -351,7 +351,12 @@ def create_event(request):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (name, description, date, time, duration, category, event_images.get(category, ""), il, request.session['user_id']))
             conn.commit()
-            messages.success(request, 'Etkinlik başarıyla oluşturuldu.')
+
+            # Kullanıcıya 15 puan ekle
+            cursor.execute("UPDATE users SET points = points + 15 WHERE id = %s", (request.session['user_id'],))
+            conn.commit()
+
+            messages.success(request, 'Etkinlik başarıyla oluşturuldu ve 15 puan kazandınız.')
             return redirect('user_dashboard')
         except mysql.connector.Error as err:
             messages.error(request, f'Hata oluştu: {err}')
@@ -360,3 +365,73 @@ def create_event(request):
             conn.close()
         return redirect('user_dashboard')
     return render(request, 'create_event.html', {'event_images': event_images})
+
+def delete_event(request, event_id):
+    if 'user_id' not in request.session:
+        return redirect('login_user')
+    
+    user_id = request.session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Etkinliği sil
+    try:
+        cursor.execute("DELETE FROM events WHERE id = %s AND olusturanid = %s", (event_id, user_id))
+        conn.commit()
+        messages.success(request, 'Etkinlik başarıyla silindi.')
+    except mysql.connector.Error as err:
+        messages.error(request, f'Hata oluştu: {err}')
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect('user_dashboard')  # Kullanıcı paneline yönlendir
+
+def all_events(request):
+    if 'user_id' not in request.session:
+        return redirect('login_user')
+
+    user_id = request.session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Kullanıcının katıldığı etkinlikleri çek
+    cursor.execute("SELECT event_id FROM participants WHERE user_id = %s", (user_id,))
+    user_joined_events = [row['event_id'] for row in cursor.fetchall()]
+
+    # Tüm etkinlikleri çek
+    cursor.execute("SELECT * FROM events")
+    events = cursor.fetchall()
+    cursor.close()
+
+    return render(request, 'all_events.html', {
+        'events': events,
+        'user_joined_events': user_joined_events,  # Kullanıcının katıldığı etkinliklerin ID'leri
+        'categories': list(set(event['category'] for event in events))  # Kategorileri benzersiz hale getir
+    })
+
+def join_event(request, event_id):
+    if 'user_id' not in request.session:
+        return redirect('login_user')
+
+    user_id = request.session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Kullanıcının etkinliğe katılmasını sağla
+        cursor.execute("INSERT INTO participants (user_id, event_id) VALUES (%s, %s)", (user_id, event_id))
+        conn.commit()
+
+        # Kullanıcıya 10 puan ekle
+        cursor.execute("UPDATE users SET points = points + 10 WHERE id = %s", (user_id,))
+        conn.commit()
+
+        messages.success(request, 'Etkinliğe katıldınız ve 10 puan kazandınız.')
+    except mysql.connector.Error as err:
+        messages.error(request, f'Hata oluştu: {err}')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect('all_events')  # Katıldıktan sonra tüm etkinlikler sayfasına yönlendir

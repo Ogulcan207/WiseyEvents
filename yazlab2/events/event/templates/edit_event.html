@@ -114,6 +114,11 @@
 
             <button type="submit">Güncelle</button>
         </form>
+
+        <form method="POST" action="{% url 'delete_event' event.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" onclick="return confirm('Bu etkinliği silmek istediğinize emin misiniz?');">Sil</button>
+        </form>
     </div>
 </body>
 </html>

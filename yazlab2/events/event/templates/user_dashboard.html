@@ -84,7 +84,7 @@
             <a href="#" id="profileLink">Kişisel Bilgilerim</a>
             <a href="#" id="messagesLink">Mesajlar</a>
             <a href="#" id="createEventLink">Etkinlik Oluştur</a>
-            <a href="#" id="eventsLink">Etkinlikler</a>
+            <a href="{% url 'all_events' %}" id="eventsLink">Tüm Etkinlikler</a>
         </nav>
     </div>
 
@@ -205,13 +205,28 @@
 
         for (let link in sections) {
             document.getElementById(link).addEventListener("click", function (e) {
-                e.preventDefault(); // Sayfa yenilenmesini engelle
+                // Eğer bağlantı normal bir URL ise, varsayılan davranışı engellemeyin
+                if (this.getAttribute('href') !== "#") {
+                    return; // Normal bağlantı
+                }
+                e.preventDefault(); // Diğer bağlantılar için varsayılan davranışı engelle
                 for (let section in sections) {
                     document.getElementById(sections[section]).classList.add("hidden");
                 }
                 document.getElementById(sections[link]).classList.remove("hidden");
             });
         }
+
+        // Sol paneldeki bağlantılara tıklama olayını engellemeyin
+        document.querySelectorAll('.sidebar a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                // Eğer bağlantı normal bir URL ise, varsayılan davranışı engellemeyin
+                if (this.getAttribute('href') !== "#") {
+                    return; // Normal bağlantı
+                }
+                e.preventDefault(); // Diğer bağlantılar için varsayılan davranışı engelle
+            });
+        });
     </script>
 </body>
 </html>

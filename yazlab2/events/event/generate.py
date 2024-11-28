@@ -314,7 +314,7 @@ def add_fake_participants():
     for user_id in range(1, 51):  # 50 kullanıcı olduğunu varsayıyoruz
         # Her kullanıcı için rastgele 1-3 etkinliğe katılım oluştur
         for _ in range(random.randint(1, 3)):
-            event_id = random.randint(1, 5)  # 5 etkinlik olduğunu varsayıyoruz
+            event_id = random.randint(1, 15)  # 5 etkinlik olduğunu varsayıyoruz
             cursor.execute("INSERT INTO participants (user_id, event_id) VALUES (%s, %s)", (user_id, event_id))
             
             # Kullanıcının toplam puanını artır
