@@ -92,13 +92,14 @@
     <div class="content">
         <div id="homeContent">
             <h3>Katıldığınız Etkinlikler</h3>
-            <ul>
+            <ul style="display: flex; flex-wrap: wrap; list-style-type: none; padding: 0;">
                 {% for event in joined_events %}
-                <li>
-                    <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100px; height: 100px; border-radius: 8px;">
-                    <p><strong>{{ event.name }}</strong> - {{ event.description }}</p>
-                    <p><strong>Tarih:</strong> {{ event.date }}</p> <!-- Tarih bilgisi ekleyin -->
-                    <p><strong>Yer:</strong> {{ event.il }}</p> <!-- Yer bilgisi ekleyin -->
+                <li style="flex: 1 1 calc(33.33% - 20px); margin: 10px; box-sizing: border-box;">
+                    <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100%; height: auto; border-radius: 8px;">
+                    <p><strong>{{ event.name }}</strong></p>
+                    <p>{{ event.description }}</p>
+                    <p><strong>Tarih:</strong> {{ event.date }}</p>
+                    <p><strong>Yer:</strong> {{ event.il }}</p>
                 </li>
                 {% empty %}
                 <p>Henüz katıldığınız bir etkinlik yok.</p>
@@ -106,19 +107,21 @@
             </ul>
 
             <h3>Oluşturduğunuz Etkinlikler</h3>
-            <ul>
+            <ul style="display: flex; flex-wrap: wrap; list-style-type: none; padding: 0;">
                 {% for event in created_events %}
-                <li>
-                    <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100px; height: 100px; border-radius: 8px;">
-                    <p><strong>{{ event.name }}</strong> - {{ event.description }}</p>
-                    <p><strong>Tarih:</strong> {{ event.date }}</p> <!-- Tarih bilgisi ekleyin -->
-                    <p><strong>Yer:</strong> {{ event.il }}</p> <!-- Yer bilgisi ekleyin -->
+                <li style="flex: 1 1 calc(33.33% - 20px); margin: 10px; box-sizing: border-box;">
+                    <img src="{{ event.image_url }}" alt="{{ event.name }}" style="width: 100%; height: auto; border-radius: 8px;">
+                    <p><strong>{{ event.name }}</strong></p>
+                    <p>{{ event.description }}</p>
+                    <p><strong>Tarih:</strong> {{ event.date }}</p>
+                    <p><strong>Yer:</strong> {{ event.il }}</p>
                 </li>
                 {% empty %}
                 <p>Henüz oluşturduğunuz bir etkinlik yok.</p>
                 {% endfor %}
             </ul>
         </div>
+
 
         <div id="profileContent" class="hidden">
             <h3>Kişisel Bilgilerim</h3>
@@ -141,25 +144,15 @@
         <div id="messagesContent" class="hidden">
             <h3>Mesajlar</h3>
             <ul style="display: flex; flex-wrap: wrap; list-style-type: none; padding: 0;">
-                {% for event_data in messages_data %}
+                {% for event in joined_events %}
                 <li style="flex: 1 1 calc(33.33% - 20px); margin: 10px; box-sizing: border-box;">
-                    <h4><strong>{{ event_data.event.name }}</strong></h4>
-                    <img src="{{ event_data.image_url }}" alt="{{ event_data.event.name }}" style="width: 100px; height: 100px; border-radius: 8px;">
-                    <p><strong>{{ event_data.event.description }}</strong></p>
-                    <p><strong>Mesajlar:</strong></p>
-                    <ul>
-                        {% for message in event_data.messages %}
-                        <li>
-                            <p><strong>{{ message.sender_id }}:</strong> {{ message.message_text }} <em>{{ message.sent_time }}</em></p>
-                        </li>
-                        {% empty %}
-                        <p>Henüz mesaj yok.</p>
-                        {% endfor %}
-                    </ul>
-                    <a href="{% url 'event_messages' event_data.event.id %}" class="btn btn-primary mt-3 mesaj-btn">Mesajlar</a>
+                    <img src="{{ event.image_url }}" style="width: 100%; height: auto; border-radius: 8px;">
+                    <p><strong>{{ event.name }}</strong></p>
+                    <p><strong>{{ event.description }}</strong></p>
+                    <a href="{% url 'event_messages' event.id %}" class="btn btn-primary mt-3 mesaj-btn">Mesajlar</a>
                 </li>
                 {% empty %}
-                <p>Henüz oluşturduğunuz bir etkinlik yok.</p>
+                <p>Henüz katıldığınız bir etkinlik yok.</p>
                 {% endfor %}
             </ul>
         </div>
