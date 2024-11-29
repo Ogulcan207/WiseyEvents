@@ -100,6 +100,11 @@
                     <p>{{ event.description }}</p>
                     <p><strong>Tarih:</strong> {{ event.date }}</p>
                     <p><strong>Yer:</strong> {{ event.il }}</p>
+                    <a href="{% url 'maps' event.id %}" style="text-decoration: none;">
+                        <button style="background-color: #007bff; color: white; border: none; border-radius: 5px; padding: 10px 15px; cursor: pointer;">
+                            Yol Tarifi
+                        </button>
+                    </a>
                 </li>
                 {% empty %}
                 <p>Henüz katıldığınız bir etkinlik yok.</p>

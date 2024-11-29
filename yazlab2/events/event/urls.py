@@ -12,6 +12,7 @@ urlpatterns = [
     path('signup', views.signup, name='signup'),
     path('edit_event/<int:event_id>/', views.edit_event, name='edit_event'),
     path('messages/<int:event_id>/', views.event_messages, name='event_messages'),
+    path("maps/<int:event_id>/", views.maps, name="maps"),
     path('profile/', views.update_profile, name='profile'),
     path('create_event/', views.create_event, name='create_event'),
     path('event/delete/<int:event_id>/', delete_event, name='delete_event'),  # Silme URL'si

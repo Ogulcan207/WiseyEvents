@@ -14,7 +14,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="200!Voxor",
+        passwd="159753Ubeyd",
         database="akillietkinlik"
     )
 
@@ -183,6 +183,25 @@ def user_dashboard(request):
         'created_events': created_events,  # Oluşturulan etkinlikler
         'messages_data': messages_data,  # Oluşturulan etkinliklere ait mesajlar
         'profile_pictures': profile_pictures  # Profil resimlerini gönder
+    })
+
+
+
+def maps(request, event_id):
+    user_id = request.session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT il FROM users WHERE id = %s", (user_id,))
+    user_city = cursor.fetchone()
+
+    cursor.execute("SELECT il FROM events WHERE id = %s", (event_id,))
+    event_city = cursor.fetchone()
+
+    return render(request, 'maps.html', {
+        'event_id': event_id,
+        'event_city': event_city,
+        'user_city': user_city
     })
 
 

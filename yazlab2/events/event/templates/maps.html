@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps Yol Tarifi</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            background-color: #e9ecef;
+            font-family: 'Arial', sans-serif;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            margin-bottom: 15px;
+            display: block;
+            font-size: 16px;
+        }
+        .sidebar a:hover {
+            text-decoration: underline;
+        }
+        .content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sol Panel -->
+    <div class="sidebar">
+        <h3 style="color: white;">Smart Activity</h3>
+        <nav>
+            <a href="#">Anasayfa</a>
+            <a href="#">Kişisel Bilgilerim</a>
+            <a href="#">Mesajlar</a>
+            <a href="#">Etkinlik Oluştur</a>
+            <a href="#">Tüm Etkinlikler</a>
+        </nav>
+    </div>
+
+    <!-- İçerik Alanı -->
+    <div class="content">
+        <h3>Etkinlik Yol Tarifi</h3>
+        <div id="map"></div>
+    </div>
+
+    <!-- Google Maps API -->
+    <script>
+        function initMap() {
+            // Backend'den gelen dinamik şehir bilgileri
+            const startLocation = "{{ user_city }}";  // Kullanıcının bulunduğu şehir
+            const endLocation = "{{ event_city }}";  // Etkinlik şehri
+
+            // Harita oluşturma
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 6,
+                center: { lat: 39.92077, lng: 32.85411 }, // Türkiye merkezi (opsiyonel)
+            });
+
+            // Yol tarifi servisi ve renderlayıcısı
+            const directionsService = new google.maps.DirectionsService();
+            const directionsRenderer = new google.maps.DirectionsRenderer();
+            directionsRenderer.setMap(map);
+
+            // Yol tarifi isteği
+            const request = {
+                origin: startLocation,
+                destination: endLocation,
+                travelMode: 'DRIVING', // Sürüş modu
+            };
+
+            // Yol tarifi hesaplama
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                } else {
+                    alert("Yol tarifi alınamadı: " + status);
+                }
+            });
+        }
+    </script>
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgvXCD0KyVFDmMLrxGY-E6h2Mj2cQTWVw&callback=initMap">
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
