@@ -41,10 +41,20 @@
         }
         #map {
             width: 100%;
-            height: 100%;
+            height: 70%;
             min-height: 500px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #route-info {
+            margin-top: 15px;
+            font-size: 21px;
+        }
+        .mode-buttons {
+            margin-bottom: 15px;
+        }
+        .mode-buttons button {
+            margin-right: 10px;
         }
     </style>
 </head>
@@ -64,38 +74,58 @@
     <!-- İçerik Alanı -->
     <div class="content">
         <h3>Etkinlik Yol Tarifi</h3>
+        <div class="mode-buttons">
+            <button class="btn btn-primary" onclick="calculateRoute('DRIVING')">Araba ile</button>
+            <button class="btn btn-success" onclick="calculateRoute('WALKING')">Yürüyerek</button>
+            <button class="btn btn-danger" onclick="calculateRoute('TRANSIT')">Toplu Taşıma</button>
+        </div>
+        <div id="route-info">
+            <strong>Yol Bilgisi:</strong> <span id="distance"></span>, <span id="duration"></span>
+        </div>
+        <br>
         <div id="map"></div>
     </div>
 
     <!-- Google Maps API -->
     <script>
+        let map, directionsService, directionsRenderer;
+
         function initMap() {
-            // Backend'den gelen dinamik şehir bilgileri
             const startLocation = "{{ user_city }}";  // Kullanıcının bulunduğu şehir
             const endLocation = "{{ event_city }}";  // Etkinlik şehri
 
             // Harita oluşturma
-            const map = new google.maps.Map(document.getElementById("map"), {
+            map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 6,
                 center: { lat: 39.92077, lng: 32.85411 }, // Türkiye merkezi (opsiyonel)
             });
 
-            // Yol tarifi servisi ve renderlayıcısı
-            const directionsService = new google.maps.DirectionsService();
-            const directionsRenderer = new google.maps.DirectionsRenderer();
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer();
             directionsRenderer.setMap(map);
 
-            // Yol tarifi isteği
+            // Varsayılan mod: Araba ile
+            calculateRoute('DRIVING');
+        }
+
+        function calculateRoute(travelMode) {
+            const startLocation = "{{ user_city }}";  // Kullanıcının bulunduğu şehir
+            const endLocation = "{{ event_city }}";  // Etkinlik şehri
+
             const request = {
                 origin: startLocation,
                 destination: endLocation,
-                travelMode: 'DRIVING', // Sürüş modu
+                travelMode: travelMode,
             };
 
-            // Yol tarifi hesaplama
             directionsService.route(request, (result, status) => {
                 if (status === 'OK') {
                     directionsRenderer.setDirections(result);
+
+                    // Mesafe ve süre bilgilerini al
+                    const route = result.routes[0].legs[0];
+                    document.getElementById("distance").textContent = route.distance.text;
+                    document.getElementById("duration").textContent = route.duration.text;
                 } else {
                     alert("Yol tarifi alınamadı: " + status);
                 }
@@ -107,10 +137,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
