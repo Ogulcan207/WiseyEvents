@@ -118,20 +118,44 @@ def update_profile(request):
     return render(request, 'profile.html', {'user': user, 'profile_pictures': profile_pictures})  # Kullanıcı bilgilerini gönder
 
 def admin_dashboard(request):
-    print("Session admin_id:", request.session.get('admin_id'))  # Admin ID kontrol
     if 'admin_id' not in request.session:
-        print("Admin oturumu bulunamadı. Giriş ekranına yönlendirme.")
         return redirect('login_admin')
     
-    # Admin bilgilerini çek
     admin_id = request.session['admin_id']
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM admin WHERE id = %s", (admin_id,))
-    admin = cursor.fetchone()
-    cursor.close()
+    cursor = conn.cursor(dictionary=True)  # Sütun isimlerini sözlük formatında al
+    try:
+        # Admin bilgilerini çek
+        cursor.execute("SELECT * FROM admin WHERE id = %s", (admin_id,))
+        admin = cursor.fetchone()
 
-    return render(request, 'admin_dashboard.html', {'admin': admin})
+        # Onay bekleyen etkinlikleri çek
+        cursor.execute("SELECT * FROM events WHERE is_ready = FALSE")
+        pending_events = cursor.fetchall()
+
+        # Tüm etkinlikleri listele (isteğe bağlı)
+        cursor.execute("SELECT * FROM events WHERE is_ready = TRUE")
+        approved_events = cursor.fetchall()
+
+        # Tüm kullanıcıları çek (isteğe bağlı)
+        cursor.execute("SELECT * FROM users")
+        users = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        messages.error(request, f"Veritabanı hatası: {err}")
+        pending_events, approved_events, users = [], [], []
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render(request, 'admin_dashboard.html', {
+        'admin': admin,
+        'pending_events': pending_events,
+        'approved_events': approved_events,
+        'users': users,
+        'profile_pictures': profile_pictures,  # Profil resimlerini gönder
+    })
+
 
 
 def user_dashboard(request):
@@ -393,6 +417,7 @@ def edit_event(request, event_id):
         duration = request.POST.get('duration')
         category = request.POST.get('category')
         il = request.POST.get('il')
+        is_ready = request.POST.get('is_ready')
 
         # Yeni etkinliğin başlangıç zamanını hesapla
         start_datetime = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), dt_time.fromisoformat(time))
@@ -432,9 +457,9 @@ def edit_event(request, event_id):
         try:
             cursor.execute(""" 
                 UPDATE events 
-                SET name = %s, description = %s, date = %s, time = %s, duration = %s, category = %s, il = %s
+                SET name = %s, description = %s, date = %s, time = %s, duration = %s, category = %s, il = %s, is_ready = %s FALSE
                 WHERE id = %s AND olusturanid = %s
-            """, (name, description, date, time, duration, category, il, event_id, user_id))
+            """, (name, description, date, time, duration, category, il, is_ready, event_id, user_id))
             conn.commit()
             messages.success(request, 'Etkinlik başarıyla güncellendi.')
         except mysql.connector.Error as err:
@@ -500,16 +525,16 @@ def create_event(request):
         # Veritabanına etkinliği ekle
         try:
             cursor.execute(""" 
-                INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (name, description, date, time, duration, category, event_images.get(category, ""), il, request.session['user_id']))
+                INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid, is_ready) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (name, description, date, time, duration, category, event_images.get(category, ""), il, request.session['user_id'], False))  # is_ready = FALSE
             conn.commit()
 
             # Kullanıcıya 15 puan ekle
-            cursor.execute("UPDATE users SET points = points + 15 WHERE id = %s", (request.session['user_id'],))
+            cursor.execute("UPDATE users SET total_points = total_points + 15 WHERE id = %s", (request.session['user_id'],))
             conn.commit()
 
-            messages.success(request, 'Etkinlik başarıyla oluşturuldu ve 15 puan kazandınız.')
+            messages.success(request, 'Etkinlik başarıyla oluşturuldu ve onay bekliyor.')
             return redirect('user_dashboard')
         except mysql.connector.Error as err:
             messages.error(request, f'Hata oluştu: {err}')
@@ -517,6 +542,7 @@ def create_event(request):
             cursor.close()
             conn.close()
         return redirect('user_dashboard')
+    
     return render(request, 'create_event.html', {'event_images': event_images})
 
 def delete_event(request, event_id):
@@ -539,6 +565,167 @@ def delete_event(request, event_id):
         conn.close()
     
     return redirect('user_dashboard')  # Kullanıcı paneline yönlendir
+
+def delete_event_admin(request, event_id):
+    if 'admin_id' not in request.session:
+        return redirect('login_admin')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Etkinliği sil
+    try:
+        cursor.execute("DELETE FROM participants WHERE event_id = %s", (event_id,))
+        cursor.execute("DELETE FROM events WHERE id = %s", (event_id,))
+        conn.commit()
+        messages.success(request, 'Etkinlik başarıyla silindi.')
+    except mysql.connector.Error as err:
+        messages.error(request, f'Hata oluştu: {err}')
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect('admin_dashboard')  # Admin paneline yönlendir
+
+def edit_event_admin(request, event_id):
+    if 'admin_id' not in request.session:
+        return redirect('login_admin')  # If admin is not logged in, redirect to admin login
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Etkinlik bilgilerini çek
+    cursor.execute("SELECT * FROM events WHERE id = %s", (event_id,))  # Pass event_id as a tuple
+    event = cursor.fetchone()
+    
+    # If the request method is POST, update the event details
+    if request.method == 'POST':
+        
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        date = request.POST.get('date')
+        time = request.POST.get('time')
+        duration = request.POST.get('duration')
+        category = request.POST.get('category')
+        il = request.POST.get('il')
+        is_ready = request.POST.get('is_ready') == 'True'  # Convert 'True'/'False' to boolean
+        
+        try:
+            cursor.execute("""
+                UPDATE events
+                SET name = %s, description = %s, date = %s, time = %s, duration = %s, 
+                    category = %s, il = %s, is_ready = %s
+                WHERE id = %s
+            """, (name, description, date, time, duration, category, il, is_ready, event_id))
+            conn.commit()
+            messages.success(request, 'Etkinlik başarıyla güncellendi.')
+        except mysql.connector.Error as err:
+            messages.error(request, f'Hata oluştu: {err}')
+            return redirect('admin_dashboard')
+        finally:
+            cursor.close()
+            conn.close()
+        
+        return redirect('admin_dashboard')
+    
+    # Render the edit event form with existing data
+    return render(request, 'edit_event_admin.html', {'event': event})
+
+
+def delete_user(request, user_id):
+    if 'admin_id' not in request.session:
+        return redirect('login_admin')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kullanıcıyı sil
+    try:
+        cursor.execute("DELETE FROM participants WHERE user_id = %s", (user_id,))  
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        conn.commit()
+        messages.success(request, 'Kullanıcı başarıyla silindi.')
+    except mysql.connector.Error as err:
+        messages.error(request, f'Hata oluştu: {err}')
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect('admin_dashboard')  # Admin paneline yönlendir
+
+
+def edit_user(request, user_id):
+    if 'admin_id' not in request.session:
+        return redirect('login_admin')
+
+    # Kullanıcı bilgilerini çek
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+
+    # POST isteği ile güncelleme işlemi
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        phone_number = request.POST.get('phone_number')
+        interests = request.POST.get('interests')
+        il = request.POST.get('city')
+        profile_picture = request.POST.get('profile_picture')  # Seçilen profil resmini al
+
+        # Veritabanı güncelleme işlemi
+        try:
+            cursor.execute("""
+                UPDATE users 
+                SET first_name = %s, last_name = %s, email = %s, phone_number = %s, interests = %s, il = %s, profile_picture = %s
+                WHERE id = %s
+            """, (first_name, last_name, email, phone_number, interests, il, profile_picture, user_id))
+            conn.commit()
+            messages.success(request, 'Kullanıcı bilgileri başarıyla güncellendi.')
+            return redirect('admin_dashboard')
+        except mysql.connector.Error as err:
+            messages.error(request, f'Hata oluştu: {err}')
+        finally:
+            cursor.close()
+            conn.close()
+
+    # GET isteği ile kullanıcı bilgilerini formda gösterme
+    return render(request, 'edit_user.html', {'user': user, 'profile_pictures': profile_pictures})
+
+
+def approve_event(request, event_id):
+    if request.method == 'POST':
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE events SET is_ready = TRUE WHERE id = %s", (event_id,))
+            conn.commit()
+            messages.success(request, "Etkinlik onaylandı.")
+        except mysql.connector.Error as err:
+            messages.error(request, f"Veritabanı hatası: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+    return redirect('admin_dashboard')
+
+def disapprove_event(request, event_id):
+    if request.method == 'POST':
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE events SET is_ready = FALSE WHERE id = %s", (event_id,))
+            conn.commit()
+            messages.success(request, "Etkinlik onayı kaldırıldı.")
+        except mysql.connector.Error as err:
+            messages.error(request, f"Veritabanı hatası: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+    return redirect('admin_dashboard')
+
+
 
 def all_events(request):
     if 'user_id' not in request.session:
@@ -565,7 +752,7 @@ def all_events(request):
     user_location = cursor.fetchone()['il']
 
     # Tüm etkinlikleri al
-    cursor.execute("SELECT * FROM events")
+    cursor.execute("SELECT * FROM events WHERE is_ready = TRUE")
     events = cursor.fetchall()
 
     # Katılımcı sayısını güncelle

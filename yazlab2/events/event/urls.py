@@ -18,4 +18,10 @@ urlpatterns = [
     path('event/delete/<int:event_id>/', delete_event, name='delete_event'),  # Silme URL'si
     path('all_events/', all_events, name='all_events'),  # Tüm etkinlikler URL'si
     path('event/join/<int:event_id>/', join_event, name='join_event'),  # Katılma URL'si
+    path('admin/delete_event/<int:event_id>/', views.delete_event_admin, name='delete_event_admin'),
+    path('approve-event/<int:event_id>/', views.approve_event, name='approve_event'),
+    path('delete_user/<int:user_id>/', views.delete_user, name='delete_user'),
+    path('edit_user/<int:user_id>/', views.edit_user, name='edit_user'),
+    path('disapprove-event/<int:event_id>/', views.disapprove_event, name='disapprove_event'),
+    path('edit_event_admin/<int:event_id>/', views.edit_event_admin, name='edit_event_admin'),
 ]

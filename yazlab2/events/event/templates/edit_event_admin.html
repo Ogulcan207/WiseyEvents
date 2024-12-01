@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Etkinlik Düzenle</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            background-color: #e9ecef;
+            font-family: 'Arial', sans-serif;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            margin-bottom: 15px;
+            display: block;
+            font-size: 16px;
+        }
+        .sidebar a:hover {
+            text-decoration: underline;
+        }
+        .content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        h3 {
+            color: #343a40;
+        }
+        form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sol Panel -->
+    <div class="sidebar">
+        <h3 style="color: white;">Smart Activity</h3> <!-- Başlık buraya eklendi -->
+        <nav>
+            <a href="#" id="dashboardLink">Anasayfa</a>
+            <a href="#" id="eventManagementLink">Etkinlik İşlemleri</a>
+            <a href="#" id="userManagementLink">Kullanıcı İşlemleri</a>
+        </nav>
+    </div>
+
+    <!-- İçerik Alanı -->
+    <div class="content">
+        <h3>Admin Etkinlik Düzenle</h3>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        <form method="POST" action="{% url 'edit_event_admin' event.id %}">
+            {% csrf_token %}
+            <label for="name">Etkinlik Adı:</label>
+            <input type="text" id="name" name="name" value="{{ event.name }}" required>
+
+            <label for="description">Açıklama:</label>
+            <textarea id="description" name="description" required>{{ event.description }}</textarea>
+
+            <label for="date">Tarih:</label>
+            <input type="date" id="date" name="date" value="{{ event.date }}" required>
+
+            <label for="time">Saat:</label>
+            <input type="time" id="time" name="time" value="{{ event.time }}" required>
+
+            <label for="duration">Süre:</label>
+            <input type="time" id="duration" name="duration" value="{{ event.duration }}" required>
+
+            <label for="category">Kategori:</label>
+            <input type="text" id="category" name="category" value="{{ event.category }}" required>
+
+            <label for="il">İl:</label>
+            <input type="text" id="il" name="il" value="{{ event.il }}" required>
+            
+            <select id="is_ready" name="is_ready" required>
+                <option value="True" {% if event.iready %}selected{% endif %}>Onaylı</option>
+                <option value="False" {% if not event.is_ready %}selected{% endif %}>Onaysız</option>
+            </select>
+
+            <button type="submit">Güncelle</button>
+        </form>
+
+        <form method="POST" action="{% url 'delete_event_admin' event.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" onclick="return confirm('Bu etkinliği silmek istediğinize emin misiniz?');">Sil</button>
+        </form>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const messageList = document.getElementById("message-list");
+            if (messageList) {
+                setTimeout(() => {
+                    messageList.style.display = 'none';
+                }, 1000); // 1000 ms = 1 saniye
+            }
+        });
+    </script>
+</body>
+</html>

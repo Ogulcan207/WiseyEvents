@@ -27,7 +27,7 @@ def create_tables():
     cursor.execute("SET FOREIGN_KEY_CHECKS=0;")
     cursor.execute("DROP TABLE IF EXISTS users, events, participants, messages, points, admin")
 
-        # Users tablosu
+    # Users tablosu
     cursor.execute("""
         CREATE TABLE users (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -47,7 +47,7 @@ def create_tables():
         )
     """)
 
-    # Events tablosu (image_url eklenmiş)
+    # Events tablosu (is_ready alanı eklenmiş)
     cursor.execute("""
         CREATE TABLE events (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -60,6 +60,7 @@ def create_tables():
             image_url VARCHAR(255),
             il VARCHAR(50),
             olusturanid INT,
+            is_ready BOOLEAN DEFAULT FALSE,
             FOREIGN KEY (olusturanid) REFERENCES users(id)
         )
     """)
@@ -157,7 +158,7 @@ class Admin:
 
 # Etkinlik sınıfı
 class Event:
-    def __init__(self, name, description, date, time, duration, category, image_url, il, olusturanid):
+    def __init__(self, name, description, date, time, duration, category, image_url, il, olusturanid, is_ready=True):
         self.name = name
         self.description = description
         self.date = date
@@ -167,12 +168,13 @@ class Event:
         self.image_url = image_url
         self.il = il
         self.olusturanid = olusturanid
+        self.is_ready = is_ready  # Admin onay durumu
 
     def save(self):
         cursor.execute(""" 
-            INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (self.name, self.description, self.date, self.time, self.duration, self.category, self.image_url, self.il, self.olusturanid))
+            INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid, is_ready)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (self.name, self.description, self.date, self.time, self.duration, self.category, self.image_url, self.il, self.olusturanid, self.is_ready))
         
         # Etkinliği oluşturan kullanıcıyı participants tablosuna ekle
         cursor.execute("INSERT INTO participants (user_id, event_id) VALUES (%s, LAST_INSERT_ID())", (self.olusturanid,))
