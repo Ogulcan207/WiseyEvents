@@ -1,12 +1,9 @@
 import mysql.connector
 from django.shortcuts import render, redirect
 from django.contrib import messages
-import bcrypt
-from datetime import datetime
+import bcrypt, random, string, difflib
+from datetime import datetime, timedelta, time as dt_time
 from .generate import event_images, profile_pictures, hash_password
-import random
-import string
-import difflib
 
 
 # Veritabanı bağlantısını kurma fonksiyonu
@@ -14,7 +11,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        passwd="159753Ubeyd",
+        passwd="200!Voxor",
         database="akillietkinlik"
     )
 
@@ -174,6 +171,22 @@ def user_dashboard(request):
             'image_url': event['image_url']  # Etkinlik resmini ekle
         })
 
+    # Kullanıcının katıldığı etkinliklerdeki okunmamış mesaj sayısını al (kendi mesajları hariç)
+    cursor.execute("""
+        SELECT COUNT(*) AS unread_count
+        FROM messages
+        WHERE event_id IN (SELECT event_id FROM participants WHERE user_id = %s) AND is_read = FALSE AND sender_id != %s
+    """, (user_id, user_id))
+    unread_count = cursor.fetchone()['unread_count']
+
+    # Kullanıcıya ait önceki bildirim sayısını saklayın (örneğin, session'da)
+    if 'previous_unread_count' not in request.session:
+        request.session['previous_unread_count'] = unread_count
+    else:
+        # Artış miktarını hesaplayın
+        new_messages_count = unread_count - request.session['previous_unread_count']
+        request.session['previous_unread_count'] = unread_count  # Güncelle
+
     cursor.close()
 
     return render(request, 'user_dashboard.html', {
@@ -182,7 +195,9 @@ def user_dashboard(request):
         'joined_events': joined_events,
         'created_events': created_events,  # Oluşturulan etkinlikler
         'messages_data': messages_data,  # Oluşturulan etkinliklere ait mesajlar
-        'profile_pictures': profile_pictures  # Profil resimlerini gönder
+        'profile_pictures': profile_pictures,  # Profil resimlerini gönder
+        'unread_count': unread_count,
+        'new_messages_count': new_messages_count if 'new_messages_count' in locals() else 0,
     })
 
 
@@ -230,6 +245,14 @@ def event_messages(request, event_id):
         ORDER BY sent_time ASC
     """, (event_id,))
     messages_data = cursor.fetchall()
+
+    # Mesajları okundu olarak işaretle (kullanıcının kendi mesajları hariç)
+    cursor.execute("""
+        UPDATE messages
+        SET is_read = TRUE
+        WHERE event_id = %s AND sender_id != %s AND is_read = FALSE
+    """, (event_id, user_id))
+    conn.commit()
 
     if request.method == 'POST':
         content = request.POST.get('content')
@@ -370,7 +393,42 @@ def edit_event(request, event_id):
         duration = request.POST.get('duration')
         category = request.POST.get('category')
         il = request.POST.get('il')
-        
+
+        # Yeni etkinliğin başlangıç zamanını hesapla
+        start_datetime = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), dt_time.fromisoformat(time))
+        duration_hours, duration_minutes = map(int, duration.split(':'))
+        end_datetime = start_datetime + timedelta(hours=duration_hours, minutes=duration_minutes)
+
+        # Zaman çakışması kontrolü (sadece kullanıcının kendi etkinlikleri)
+        cursor.execute("SELECT * FROM events WHERE olusturanid = %s AND id != %s", (user_id, event_id))  # Kullanıcının etkinlikleri
+        existing_events = cursor.fetchall()
+
+        # Eğer mevcut etkinlikleri bir sözlük formatında almak istiyorsanız
+        columns = [column[0] for column in cursor.description]  # Sütun isimlerini al
+        existing_events = [dict(zip(columns, row)) for row in existing_events]  # Her satırı bir sözlük haline getir
+
+        conflict = False
+        for existing_event in existing_events:
+            existing_start = datetime.combine(existing_event['date'], (datetime.min + existing_event['time']).time())
+            if isinstance(existing_event['duration'], timedelta):
+                total_seconds = int(existing_event['duration'].total_seconds())
+                existing_duration_hours, remainder = divmod(total_seconds, 3600)
+                existing_duration_minutes, _ = divmod(remainder, 60)
+            else:
+                existing_duration_hours, existing_duration_minutes = map(int, existing_event['duration'].split(':'))
+
+            existing_end = existing_start + timedelta(hours=existing_duration_hours, minutes=existing_duration_minutes)
+
+            # Çakışma kontrolü
+            if (start_datetime < existing_end and end_datetime > existing_start):
+                conflict = True
+                break
+
+        if conflict:
+            messages.error(request, "Bu etkinlik, mevcut etkinliklerinizle çakışıyor. Lütfen farklı bir zaman seçin.")
+            return redirect('edit_event', event_id=event_id)
+
+        # Etkinliği güncelle
         try:
             cursor.execute(""" 
                 UPDATE events 
@@ -402,11 +460,44 @@ def create_event(request):
         duration = request.POST.get('duration')
         category = request.POST.get('category')
         il = request.POST.get('il')
-        
-        # Veritabanı bağlantısını kur
+
+        # Yeni etkinliğin başlangıç zamanını hesapla
+        start_datetime = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), dt_time.fromisoformat(time))
+        duration_hours, duration_minutes = map(int, duration.split(':'))
+        end_datetime = start_datetime + timedelta(hours=duration_hours, minutes=duration_minutes)
+
+        # Zaman çakışması kontrolü (sadece kullanıcının kendi etkinlikleri)
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+        cursor.execute("SELECT * FROM events WHERE olusturanid = %s", (request.session['user_id'],))  # Kullanıcının etkinlikleri
+        existing_events = cursor.fetchall()
+
+        # Eğer mevcut etkinlikleri bir sözlük formatında almak istiyorsanız
+        columns = [column[0] for column in cursor.description]  # Sütun isimlerini al
+        existing_events = [dict(zip(columns, row)) for row in existing_events]  # Her satırı bir sözlük haline getir
+
+        conflict = False
+        for event in existing_events:
+            existing_start = datetime.combine(event['date'], (datetime.min + event['time']).time())
+            if isinstance(event['duration'], timedelta):
+                total_seconds = int(event['duration'].total_seconds())
+                existing_duration_hours, remainder = divmod(total_seconds, 3600)
+                existing_duration_minutes, _ = divmod(remainder, 60)
+            else:
+                existing_duration_hours, existing_duration_minutes = map(int, event['duration'].split(':'))
+
+            existing_end = existing_start + timedelta(hours=existing_duration_hours, minutes=existing_duration_minutes)
+
+            # Çakışma kontrolü
+            if (start_datetime < existing_end and end_datetime > existing_start):
+                conflict = True
+                break
+
+        if conflict:
+            messages.error(request, "Bu etkinlik, mevcut etkinliklerinizle çakışıyor. Lütfen farklı bir zaman seçin.")
+            return redirect('create_event')
+
+        # Veritabanına etkinliği ekle
         try:
             cursor.execute(""" 
                 INSERT INTO events (name, description, date, time, duration, category, image_url, il, olusturanid) 
@@ -459,11 +550,15 @@ def all_events(request):
 
     # Kullanıcının ilgi alanlarını al
     cursor.execute("SELECT interests FROM users WHERE id = %s", (user_id,))
-    user_interests = cursor.fetchone()['interests'].split(',')
+    user_interests = cursor.fetchone()['interests'].split(',')  # İlgi alanlarını parçala
 
     # Kullanıcının katıldığı etkinlikleri al
     cursor.execute("SELECT event_id FROM participants WHERE user_id = %s", (user_id,))
     user_joined_events = [row['event_id'] for row in cursor.fetchall()]
+
+    # Kullanıcının oluşturduğu etkinlikleri al
+    cursor.execute("SELECT id FROM events WHERE olusturanid = %s", (user_id,))
+    user_created_events = [row['id'] for row in cursor.fetchall()]
 
     # Kullanıcının coğrafi konumunu al (örneğin, şehir)
     cursor.execute("SELECT il FROM users WHERE id = %s", (user_id,))
@@ -473,21 +568,47 @@ def all_events(request):
     cursor.execute("SELECT * FROM events")
     events = cursor.fetchall()
 
-    # Tüm etkinliklerin kategorilerini al ve parçala
-    cursor.execute("SELECT DISTINCT category FROM events")
-    categories = set()
-    for row in cursor.fetchall():
-        for category in row['category'].split(','):
-            categories.add(category.strip())
+    # Katılımcı sayısını güncelle
+    for event in events:
+        cursor.execute("SELECT COUNT(*) as participant_count FROM participants WHERE event_id = %s", (event['id'],))
+        participant_count = cursor.fetchone()['participant_count']
+        event['participant_count'] = participant_count
+
+        # Kategorileri parçala
+        event['categories'] = event['category'].split(',')  # Kategorileri parçala
+
+        # Kullanıcının katıldığı etkinlikleri etkinlik listesine ekle
+        event['is_joined'] = event['id'] in user_joined_events
+        event['is_created'] = event['id'] in user_created_events
 
     cursor.close()
 
+    # Filtreleme işlemi
+    filtered_events = []
+    selected_category = request.GET.get('category')  # Seçilen kategori
+    selected_interest = request.GET.get('interest')  # Seçilen ilgi alanı
+    selected_location = request.GET.get('location')  # Seçilen şehir
+
+    for event in events:
+        category_match = (selected_category is None or selected_category == "" or selected_category in event['categories'])
+        interest_match = (selected_interest is None or selected_interest == "" or selected_interest in user_interests)
+        location_match = (selected_location is None or selected_location == "" or event['il'] == selected_location)
+
+        if category_match and interest_match and location_match:
+            filtered_events.append(event)
+
+    # Tüm kategorileri ayrı ayrı listele
+    all_categories = set()
+    for event in events:
+        all_categories.update(event['categories'])
+
     return render(request, 'all_events.html', {
-        'events': events,  # Tüm etkinlikleri gönder
+        'events': filtered_events,  # Filtrelenmiş etkinlikleri gönder
         'user_joined_events': user_joined_events,
-        'categories': list(categories),  # Set'i listeye çevirerek gönder
+        'user_created_events': user_created_events,
+        'categories': sorted(all_categories),  # Kategorileri ayrı ayrı gönder
         'user_interests': user_interests,  # Kullanıcının ilgi alanlarını gönder
-        'user_location': user_location  # Kullanıcının konumunu gönder
+        'user_location': user_location,  # Kullanıcının konumunu gönder
     })
 
 def join_event(request, event_id):
@@ -496,10 +617,47 @@ def join_event(request, event_id):
 
     user_id = request.session['user_id']
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
+    # Katılmak istenen etkinliğin bilgilerini al
+    cursor.execute("SELECT * FROM events WHERE id = %s", (event_id,))
+    event_to_join = cursor.fetchone()
+
+    if not event_to_join:
+        messages.error(request, "Böyle bir etkinlik bulunamadı.")
+        return redirect('all_events')
+
+    # Kullanıcının katıldığı etkinlikleri al
+    cursor.execute("SELECT event_id FROM participants WHERE user_id = %s", (user_id,))
+    user_joined_events = [row['event_id'] for row in cursor.fetchall()]
+
+    # Kullanıcının katıldığı etkinliklerin bilgilerini al
+    cursor.execute("SELECT * FROM events WHERE id IN (%s)" % ','.join(['%s'] * len(user_joined_events)), user_joined_events)
+    joined_events = cursor.fetchall()
+
+    # Zaman çakışması kontrolü
+    conflict = False
+    for joined_event in joined_events:
+        existing_start = datetime.combine(joined_event['date'], (datetime.min + joined_event['time']).time())
+        existing_duration_hours, existing_duration_minutes = map(int, joined_event['duration'].split(':'))
+        existing_end = existing_start + timedelta(hours=existing_duration_hours, minutes=existing_duration_minutes)
+
+        # Katılmak istenen etkinliğin başlangıç zamanını ve süresini hesapla
+        event_start = datetime.combine(event_to_join['date'], (datetime.min + event_to_join['time']).time())
+        event_duration_hours, event_duration_minutes = map(int, event_to_join['duration'].split(':'))
+        event_end = event_start + timedelta(hours=event_duration_hours, minutes=event_duration_minutes)
+
+        # Çakışma kontrolü
+        if (event_start < existing_end and event_end > existing_start):
+            conflict = True
+            break
+
+    if conflict:
+        messages.error(request, "Bu etkinliğe katılamazsınız, çünkü mevcut etkinliklerinizle çakışıyor.")
+        return redirect('all_events')
+
+    # Kullanıcının etkinliğe katılmasını sağla
     try:
-        # Kullanıcının etkinliğe katılmasını sağla
         cursor.execute("INSERT INTO participants (user_id, event_id) VALUES (%s, %s)", (user_id, event_id))
         conn.commit()
 

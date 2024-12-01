@@ -93,7 +93,7 @@
                 {% endfor %}
             </ul>
         {% endif %}
-        <form method="POST">
+        <form method="POST" id="createEventForm">
             {% csrf_token %}
             <label for="name">Etkinlik Adı:</label>
             <input type="text" id="name" name="name" required>
@@ -136,6 +136,33 @@
                 setTimeout(() => {
                     messageList.style.display = 'none';
                 }, 1000); // 1000 ms = 1 saniye
+            }
+        });
+
+        // Mevcut etkinlikleri al
+        const existingEvents = [
+            // Buraya mevcut etkinliklerin tarih ve saat bilgilerini ekleyin
+            // Örnek: { start: "2023-10-01T10:00:00", end: "2023-10-01T12:00:00" }
+        ];
+
+        document.getElementById("createEventForm").addEventListener("submit", function(e) {
+            const date = document.getElementById("date").value;
+            const time = document.getElementById("time").value;
+            const duration = document.getElementById("duration").value;
+
+            const startDateTime = new Date(`${date}T${time}`);
+            const durationParts = duration.split(':');
+            const endDateTime = new Date(startDateTime.getTime() + (parseInt(durationParts[0]) * 60 + parseInt(durationParts[1])) * 60000);
+
+            for (const event of existingEvents) {
+                const existingStart = new Date(event.start);
+                const existingEnd = new Date(event.end);
+
+                if (startDateTime < existingEnd && endDateTime > existingStart) {
+                    alert("Bu etkinlik, mevcut etkinliklerinizle çakışıyor. Lütfen farklı bir zaman seçin.");
+                    e.preventDefault(); // Formun gönderilmesini engelle
+                    return;
+                }
             }
         });
     </script>

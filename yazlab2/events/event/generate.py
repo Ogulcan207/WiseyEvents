@@ -2,12 +2,13 @@ import mysql.connector
 from faker import Faker
 import random
 import bcrypt
+from datetime import datetime, timedelta
 
 # Veritabanına bağlanma
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    passwd="159753Ubeyd",
+    passwd="200!Voxor",
     database="akillietkinlik"
 )
 cursor = db.cursor()
@@ -81,6 +82,7 @@ def create_tables():
             event_id INT,
             message_text TEXT,
             sent_time TIMESTAMP,
+            is_read BOOLEAN DEFAULT FALSE,
             FOREIGN KEY (sender_id) REFERENCES users(id),
             FOREIGN KEY (event_id) REFERENCES events(id)
         )
@@ -189,17 +191,18 @@ class Participant:
 
 # Mesaj sınıfı
 class Message:
-    def __init__(self, sender_id, event_id, message_text, sent_time):
+    def __init__(self, sender_id, event_id, message_text, sent_time, is_read=False):
         self.sender_id = sender_id
         self.event_id = event_id
         self.message_text = message_text
         self.sent_time = sent_time
+        self.is_read = is_read  # Okundu bilgisi
 
     def save(self):
         cursor.execute("""
-            INSERT INTO messages (sender_id, event_id, message_text, sent_time)
-            VALUES (%s, %s, %s, %s)
-        """, (self.sender_id, self.event_id, self.message_text, self.sent_time))
+            INSERT INTO messages (sender_id, event_id, message_text, sent_time, is_read)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (self.sender_id, self.event_id, self.message_text, self.sent_time, self.is_read))
         db.commit()
 
 # Puan sınıfı
@@ -246,7 +249,11 @@ event_images = {
     "Sinema": "/static/event/sinema.jpg",
     "Opera": "/static/event/opera.jpg",
     "Konser": "/static/event/konser.jpg",
-    "Kitap Tanıtımı": "/static/event/kitap.jpg"
+    "Kitap Tanıtımı": "/static/event/kitap.jpg",
+    "Parti": "/static/event/parti.jpg",
+    "Halısaha": "/static/event/halısaha.jpg",
+    "Sergi": "/static/event/sergi.jpg",
+    "Festival": "/static/event/festival.jpg"
 }
 
 # Etkinliklerin birden fazla ilgi alanıyla eşleşmesi
@@ -254,8 +261,12 @@ event_categories = {
     "Kitap Tanıtımı": ["Edebiyat", "Eğitim"],
     "Tiyatro": ["Sanat", "Edebiyat"],
     "Sinema": ["Sanat", "Edebiyat"],
-    "Opera": ["Sanat", "Edebiyat"],
-    "Konser": ["Müzik", "Sanat"]
+    "Opera": ["Sanat", "Tarih"],
+    "Konser": ["Müzik", "Sanat"],
+    "Parti": ["Eğlence"],
+    "Halısaha":["Eğlence", "Spor"],
+    "Festival": ["Eğlence", "Kültür"],
+    "Sergi": ["Sanat", "Kültür"]
 }
 
 cities = [
@@ -268,6 +279,7 @@ cities = [
 # Faker ile sahte veri ekleme
 def add_fake_data():
     existing_emails = set()  # Mevcut e-posta adreslerini saklamak için bir küme
+    existing_events = []  # Mevcut etkinliklerin tarih ve saatlerini saklamak için bir liste
 
     # Sahte kullanıcılar
     for _ in range(50):
@@ -285,7 +297,7 @@ def add_fake_data():
             birth_date=fake.date_of_birth(minimum_age=18, maximum_age=65),
             gender=fake.random_element(['Erkek', 'Kadın']),
             phone_number=fake.phone_number()[:10],
-            interests=", ".join(fake.words(nb=2, ext_word_list=['Spor', 'Müzik', 'Tarih', 'Sanat', 'Teknoloji', 'Siyaset', 'Magazin', 'Edebiyat', 'Eğitim'])),
+            interests=", ".join(fake.words(nb=2, ext_word_list=['Spor', 'Eğlence', 'Müzik', 'Tarih', 'Sanat', 'Teknoloji', 'Siyaset', 'Magazin', 'Edebiyat', 'Eğitim'])),
             profile_picture=random.choice(profile_pictures),  # Profil resmini rastgele seç
             il=random.choice(cities)
         )
@@ -302,42 +314,75 @@ def add_fake_data():
     admin.save()
 
     # Create fake events using event_images
+    events = []  # Etkinlikleri saklamak için bir liste oluştur
     for event_name, image_url in event_images.items():
         for _ in range(3):  # Her etkinlik için 3 farklı etkinlik oluştur
             olusturanid = random.randint(1, 50)  # Rastgele kullanıcı ID'si
+            duration = random.choice(["2:00:00", "3:00:00", "1:30:00", "1:00:00", "2:30:00", "0:30:00"])  # Rastgele süre seçimi
+            
+            # Yeni etkinliğin tarih ve saatini oluştur
+            event_date = fake.date_this_year()
+            event_time_str = fake.time()  # Zamanı string olarak al
+            event_time = datetime.strptime(event_time_str, "%H:%M:%S").time()  # String'i datetime.time nesnesine dönüştür
+
+            start_datetime = datetime.combine(event_date, event_time)
+            end_datetime = start_datetime + timedelta(hours=int(duration.split(':')[0]), minutes=int(duration.split(':')[1]))
+
+            # Zaman çakışması kontrolü
+            conflict = False
+            for existing_event in existing_events:
+                if (start_datetime < existing_event['end'] and end_datetime > existing_event['start']):
+                    conflict = True
+                    break
+
+            if conflict:
+                continue  # Çakışma varsa bu etkinliği atla
+
+            # Etkinliği oluştur
             event = Event(
                 name=event_name,
                 description=fake.text(max_nb_chars=200),
-                date=fake.date_this_year(),
-                time=fake.time(),
-                duration=fake.time(),
+                date=event_date,
+                time=event_time_str,  # Zamanı string olarak sakla
+                duration=duration,  # Süreyi burada kullan
                 category=", ".join(event_categories.get(event_name, [])),  # Kategorileri al
                 image_url=image_url,  # event_images dizisinden resim URL'si
                 il=random.choice(cities),  # Rastgele şehir
                 olusturanid=olusturanid  # Rastgele kullanıcı ID'si
             )
-            event.save()
+            events.append(event)  # Oluşturulan etkinliği listeye ekle
+            existing_events.append({'start': start_datetime, 'end': end_datetime})  # Mevcut etkinlikleri güncelle
 
             # Kullanıcıya 15 puan ekle
             cursor.execute("UPDATE users SET total_points = total_points + 15 WHERE id = %s", (olusturanid,))
             db.commit()
 
+    random.shuffle(events)  # Etkinlikleri rastgele sırala
+    for event in events:  # Rastgele sıralanmış etkinlikleri kaydet
+        event.save()
+
     print("Tüm sahte veriler başarıyla eklendi.")
 
 # Sahte katılımcılar ve puan ekleme
 def add_fake_participants():
+    event_count = cursor.execute("SELECT COUNT(*) FROM events")  # Etkinlik sayısını al
+    total_events = cursor.fetchone()[0]  # İlk satırı al
+
     for user_id in range(1, 51):  # 50 kullanıcı olduğunu varsayıyoruz
+        participated_events = set()  # Kullanıcının katıldığı etkinlikleri saklamak için bir küme
         # Her kullanıcı için rastgele 1-3 etkinliğe katılım oluştur
         for _ in range(random.randint(1, 3)):
-            event_id = random.randint(1, 15)  # 5 etkinlik olduğunu varsayıyoruz
-            cursor.execute("INSERT INTO participants (user_id, event_id) VALUES (%s, %s)", (user_id, event_id))
-            
-            # Kullanıcının toplam puanını artır
-            cursor.execute("""
-                UPDATE users
-                SET total_points = total_points + 10
-                WHERE id = %s
-            """, (user_id,))
+            event_id = random.randint(1, total_events)  # Dinamik etkinlik sayısını kullan
+            if event_id not in participated_events:  # Eğer kullanıcı bu etkinliğe katılmadıysa
+                cursor.execute("INSERT INTO participants (user_id, event_id) VALUES (%s, %s)", (user_id, event_id))
+                participated_events.add(event_id)  # Etkinliği küme ekle
+                
+                # Kullanıcının toplam puanını artır
+                cursor.execute("""
+                    UPDATE users
+                    SET total_points = total_points + 10
+                    WHERE id = %s
+                """, (user_id,))
     db.commit()
     print("Sahte katılımcılar başarıyla eklendi.")
 

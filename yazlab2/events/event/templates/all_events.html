@@ -74,6 +74,16 @@
         .filter-container {
             margin-bottom: 20px;
         }
+        .joined-message {
+            margin-top: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #dff0d8;
+            border: 1px solid #d6e9c6;
+        }
+        .text-success {
+            color: #3c763d;
+        }
     </style>
 </head>
 <body>
@@ -96,7 +106,7 @@
         <!-- Filtreleme Alanı -->
         <div class="filter-container">
             <label for="categoryFilter">Kategorilere Göre Filtrele:</label>
-            <select id="categoryFilter" class="form-control">
+            <select id="categoryFilter" class="form-control" name="category">
                 <option value="">Tüm Kategoriler</option>
                 {% for category in categories %}
                 <option value="{{ category }}">{{ category }}</option>
@@ -104,7 +114,7 @@
             </select>
 
             <label for="interestFilter">İlgi Alanına Göre Filtrele:</label>
-            <select id="interestFilter" class="form-control">
+            <select id="interestFilter" class="form-control" name="interest">
                 <option value="">Tüm İlgi Alanları</option>
                 {% for interest in user_interests %}
                 <option value="{{ interest }}">{{ interest }}</option>
@@ -112,7 +122,7 @@
             </select>
 
             <label for="locationFilter">Şehre Göre Filtrele:</label>
-            <select id="locationFilter" class="form-control">
+            <select id="locationFilter" class="form-control" name="location">
                 <option value="">Tüm Şehirler</option>
                 <option value="{{ user_location }}">{{ user_location }}</option>
             </select>
@@ -123,13 +133,26 @@
             <div class="event-item" data-category="{{ event.category }}" data-interest="{{ event.interest }}" data-location="{{ event.il }}">
                 <h5>{{ event.name }}</h5>
                 <img src="{{ event.image_url }}" alt="{{ event.name }}" class="event-image">
-                <p>{{ event.description }}</p>
+                <p><strong>Açıklama:</strong> {{ event.description }}</p>
                 <p><strong>Tarih:</strong> {{ event.date }}</p>
+                <p><strong>Saat:</strong>{{event.time }} saat</p>
+                <p><strong>Süre:</strong> {{ event.duration }} saat</p>
                 <p><strong>Yer:</strong> {{ event.il }}</p>
+                <p><strong>Kategori:</strong> {{ event.category }}</p>
+                <p><strong>Katılımcı Sayısı:</strong> {{ event.participant_count }} kişi</p>
+                
+                <a href="{% url 'maps' event.id %}" class="btn btn-secondary">Haritada Göster</a> <!-- Harita bağlantısı -->
+                
+                {% if not event.is_joined %}
                 <form method="POST" action="{% url 'join_event' event.id %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-primary">Katıl</button>
                 </form>
+                {% else %}
+                <div class="joined-message">
+                    <span class="text-success">Katıldınız</span> <!-- Kullanıcının katıldığı etkinliklerde mesaj göster -->
+                </div>
+                {% endif %}
             </div>
             {% empty %}
             <p>Hiç etkinlik bulunamadı.</p>

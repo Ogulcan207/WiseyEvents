@@ -82,7 +82,7 @@
         <nav>
             <a href="#" id="homeLink">Anasayfa</a>
             <a href="#" id="profileLink">Kişisel Bilgilerim</a>
-            <a href="#" id="messagesLink">Mesajlar</a>
+            <a href="#" id="messagesLink">Mesajlar<span id="unreadCount" class="badge badge-danger">{{ unread_count }}</span></a>
             <a href="#" id="createEventLink">Etkinlik Oluştur</a>
             <a href="{% url 'all_events' %}" id="eventsLink">Tüm Etkinlikler</a>
         </nav>
@@ -99,6 +99,8 @@
                     <p><strong>{{ event.name }}</strong></p>
                     <p>{{ event.description }}</p>
                     <p><strong>Tarih:</strong> {{ event.date }}</p>
+                    <p><strong>Saat:</strong>{{event.time }} saat</p>
+                    <p><strong>Süre:</strong> {{ event.duration }} saat</p>
                     <p><strong>Yer:</strong> {{ event.il }}</p>
                     <a href="{% url 'maps' event.id %}" style="text-decoration: none;">
                         <button style="background-color: #007bff; color: white; border: none; border-radius: 5px; padding: 10px 15px; cursor: pointer;">
@@ -121,6 +123,7 @@
             {% else %}
                 <p>Profil resmi bulunamadı.</p>
             {% endif %}
+            <p><strong>Kullanıcı Adı:</strong>{{user.username}}</p>
             <p><strong>Ad:</strong> {{ user.first_name }}</p>
             <p><strong>Soyad:</strong> {{ user.last_name }}</p>
             <p><strong>E-posta:</strong> {{ user.email }}</p>
@@ -171,6 +174,11 @@
                 {% for event in all_events %}
                 <li>
                     <strong>{{ event.name }}</strong> - {{ event.description }}
+                    {% if not event.is_joined %}
+                    <a href="{% url 'join_event' event.id %}" class="btn btn-primary">Katıl</a>
+                    {% else %}
+                    <span>Katıldınız</span>
+                    {% endif %}
                 </li>
                 {% empty %}
                 <p>Hiç etkinlik bulunamadı.</p>
